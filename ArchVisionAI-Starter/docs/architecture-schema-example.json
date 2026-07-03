@@ -1,0 +1,17 @@
+{
+  "name": "Example Architecture",
+  "components": [
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "name": "React Frontend",
+      "technology": "React",
+      "position": {
+        "x": -3,
+        "y": 0,
+        "z": 0
+      }
+    }
+  ],
+  "connections": []
+}

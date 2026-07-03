@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "three": "latest",
+    "@react-three/fiber": "latest",
+    "@react-three/drei": "latest",
+    "axios": "latest",
+    "zustand": "latest",
+    "lucide-react": "latest",
+    "react-hook-form": "latest",
+    "framer-motion": "latest",
+    "react-router-dom": "latest",
+    "tailwindcss": "latest",
+    "@tailwindcss/vite": "latest"
+  },
+  "devDependencies": {}
+}
