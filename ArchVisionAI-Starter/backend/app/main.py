@@ -4,6 +4,11 @@ from dotenv import load_dotenv
 import os
 
 from app.routes import ai, projects, export
+from fastapi import Depends
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from app.database.dependencies import get_db
+
 
 load_dotenv()
 
@@ -29,3 +34,12 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/api/database/status")
+def database_status(db: Session = Depends(get_db)):
+
+    db.execute(text("SELECT 1"))
+
+    return {
+        "status": "connected"
+    }
