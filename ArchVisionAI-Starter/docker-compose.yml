@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: archvision-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: archvision_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - archvision_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  archvision_postgres_data:
