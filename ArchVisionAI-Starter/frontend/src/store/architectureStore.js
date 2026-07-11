@@ -17,11 +17,14 @@ export const useArchitectureStore = create((set, get) => ({
   model: starterModel,
   selectedId: null,
 
+  // Replace the whole model — used when the AI generates a new architecture
   setModel: (model) => set({ model }),
 
+  // Selection
   select: (id) => set({ selectedId: id }),
   clearSelection: () => set({ selectedId: null }),
 
+  // ---- Node (component) CRUD ----
   addComponent: (component) => set((state) => ({
     model: { ...state.model, components: [...state.model.components, component] },
   })),
@@ -48,6 +51,7 @@ export const useArchitectureStore = create((set, get) => ({
     model: {
       ...state.model,
       components: state.model.components.filter((c) => c.id !== id),
+      // also drop any connection that pointed at the deleted node
       connections: state.model.connections.filter(
         (conn) => conn.source !== id && conn.target !== id
       ),
@@ -55,6 +59,7 @@ export const useArchitectureStore = create((set, get) => ({
     selectedId: state.selectedId === id ? null : state.selectedId,
   })),
 
+  // ---- Connection CRUD ----
   addConnection: (source, target, label = '') => set((state) => ({
     model: {
       ...state.model,
@@ -72,5 +77,6 @@ export const useArchitectureStore = create((set, get) => ({
     },
   })),
 
+  // Plain (non-reactive) lookup helper
   getComponent: (id) => get().model.components.find((c) => c.id === id),
 }))
