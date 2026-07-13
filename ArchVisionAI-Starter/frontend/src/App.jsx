@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import ApplicationLayout from './layouts/ApplicationLayout'
+import Dashboard from './pages/Dashboard'
 import ArchitectureCanvas from './three/ArchitectureCanvas'
 import Sidebar from './components/Sidebar'
 import AIAssistant from './components/AIAssistant'
@@ -35,7 +36,8 @@ export default function App() {
   return (
     <Routes>
       <Route element={<ApplicationLayout />}>
-        <Route path="/" element={<Workspace />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/workspace" element={<Workspace />} />
       </Route>
 
