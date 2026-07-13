@@ -107,17 +107,101 @@ Users can also manually create components such as frontends, backends, databases
 - Git
 - VS Code or another editor
 - OpenAI API key
+- Docker Desktop
 
 ### Optional Installs
 
 - PostgreSQL
-- Docker Desktop
 - Postman or Insomnia
 
 ---
 
 ## Installation & Setup
 
+Verify installations:
+
+```bash
+python --version
+node -v
+npm -v
+docker --version
+```
+
+---
+
+# Clone the Repository
+
+```bash
+git clone <repository-url>
+
+cd ArchVisionAI-Starter
+```
+
+---
+
+# Environment Variables
+
+Copy
+
+```
+.env.example
+```
+
+to
+
+```
+.env
+```
+
+Example:
+
+```text
+OPENAI_API_KEY=your_openai_api_key_here
+
+DATABASE_URL=postgresql://postgres:password@localhost:5432/archvision_ai
+
+CORS_ORIGINS=http://localhost:5173
+
+VITE_API_BASE_URL=http://localhost:8000
+
+POSTGRES_DB=archvision_ai
+
+POSTGRES_USER=postgres
+
+POSTGRES_PASSWORD=password
+```
+
+---
+
+# Start PostgreSQL
+
+Docker Desktop must be running.
+
+Start the database:
+
+```bash
+docker compose up -d
+```
+
+Verify the container:
+
+```bash
+docker compose ps
+```
+
+Expected output:
+
+```
+archvision-postgres
+```
+
+Stop the database:
+
+```bash
+docker compose down
+```
+
+---
 
 ### 1. Backend setup
 
@@ -174,6 +258,42 @@ Frontend will run at:
 
 ```text
 http://localhost:5173
+```
+
+---
+
+### Running the Project
+
+The project requires **three running processes**.
+
+### Terminal 1
+
+Docker
+
+```bash
+docker compose up -d
+```
+
+### Terminal 2
+
+Backend
+
+```bash
+cd backend
+
+venv\Scripts\activate
+
+uvicorn app.main:app --reload
+```
+
+### Terminal 3
+
+Frontend
+
+```bash
+cd frontend
+
+npm run dev
 ```
 
 ---
