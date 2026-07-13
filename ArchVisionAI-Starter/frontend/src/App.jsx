@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import ApplicationLayout from './layouts/ApplicationLayout'
 import ArchitectureCanvas from './three/ArchitectureCanvas'
 import Sidebar from './components/Sidebar'
 import AIAssistant from './components/AIAssistant'
@@ -6,34 +7,22 @@ import SelectedNodePanel from './components/SelectedNodePanel'
 
 function Workspace() {
   return (
-    <div className="h-screen flex flex-col">
-      <header className="h-16 border-b border-slate-800 bg-slate-950 flex items-center px-6 justify-between">
-        <h1 className="text-2xl font-bold">
-          ArchVision <span className="text-indigo-400">AI</span>
-        </h1>
+    <div className="flex h-full min-h-0">
+      <Sidebar />
 
-        <button className="px-4 py-2 rounded-lg bg-indigo-600">
-          Export Project
-        </button>
-      </header>
+      <section className="relative min-w-0 flex-1">
+        <ArchitectureCanvas />
+        <SelectedNodePanel />
+      </section>
 
-      <main className="flex flex-1 min-h-0">
-        <Sidebar />
-
-        <section className="flex-1 min-w-0 relative">
-          <ArchitectureCanvas />
-          <SelectedNodePanel />
-        </section>
-
-        <AIAssistant />
-      </main>
+      <AIAssistant />
     </div>
   )
 }
 
 function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
       <div className="text-center">
         <h1 className="text-4xl font-bold">404</h1>
         <p className="mt-2 text-slate-400">Page not found</p>
@@ -45,8 +34,11 @@ function NotFound() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Workspace />} />
-      <Route path="/workspace" element={<Workspace />} />
+      <Route element={<ApplicationLayout />}>
+        <Route path="/" element={<Workspace />} />
+        <Route path="/workspace" element={<Workspace />} />
+      </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   )
