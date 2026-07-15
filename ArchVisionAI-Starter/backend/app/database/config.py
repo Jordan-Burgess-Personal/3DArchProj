@@ -1,10 +1,3 @@
-from dotenv import load_dotenv
-import os
+from app.config import settings
 
-# Load variables from .env file
-load_dotenv()
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:password@localhost:5432/archvision_ai"
-    )
+DATABASE_URL = settings.database_url

@@ -1,17 +1,33 @@
 # Python
 __pycache__/
 *.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
 venv/
+.venv/
+
+# Environment files
 .env
+.env.local
+.env.*
+!.env.example
+
 
 # Node
 node_modules/
 dist/
-.env.local
+frontend/.vite/
 
 # Generated exports
 generated_projects/
 
 # OS/IDE
 .DS_Store
+Thumbs.db
 .vscode/
+.idea/

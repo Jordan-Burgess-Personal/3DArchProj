@@ -1,10 +1,8 @@
 from contextlib import asynccontextmanager
-import os
+from app.config import settings
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-
 
 from app.routes import ai, projects, export
 from sqlalchemy import text
@@ -13,19 +11,22 @@ from app.database.dependencies import get_db
 from app.database.init_db import create_database_tables
 
 
-load_dotenv()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_database_tables()
     yield
 
-app = FastAPI(title="ArchVision AI API", version="0.1.0", lifespan=lifespan,)
 
-origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    debug=settings.debug,
+    lifespan=lifespan,
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,18 +37,22 @@ app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(export.router, prefix="/api/export", tags=["Export"])
 
 @app.get("/")
-def root():
-    return {"message": "ArchVision AI backend is running"}
+def root() -> dict[str, str]:
+    return {
+        "message": f"{settings.app_name} is running",
+        "environment": settings.app_environment,
+    }
+
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health() -> dict[str, str]:
+    return {"status": "healthy"}
+
 
 @app.get("/api/database/status")
-def database_status(db: Session = Depends(get_db)):
-
+def database_status(
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
     db.execute(text("SELECT 1"))
 
-    return {
-        "status": "connected"
-    }
+    return {"status": "connected"}
