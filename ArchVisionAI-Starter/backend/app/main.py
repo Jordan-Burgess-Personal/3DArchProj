@@ -1,18 +1,26 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 import os
 
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+
 from app.routes import ai, projects, export
-from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.database.dependencies import get_db
+from app.database.init_db import create_database_tables
 
 
 load_dotenv()
 
-app = FastAPI(title="ArchVision AI API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_database_tables()
+    yield
+
+app = FastAPI(title="ArchVision AI API", version="0.1.0", lifespan=lifespan,)
 
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
