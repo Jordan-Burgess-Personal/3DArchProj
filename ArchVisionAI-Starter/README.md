@@ -212,6 +212,10 @@ python -m venv venv
 # Windows
 venv\Scripts\activate
 
+or
+
+source venv/Scripts/activate
+
 # macOS/Linux
 source venv/bin/activate
 
@@ -230,6 +234,10 @@ Run the backend:
 
 ```bash
 uvicorn app.main:app --reload --port 8000
+```
+Alternatively
+```bash
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Backend will run at:
