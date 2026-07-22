@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import { getProjectSummaries } from '../api/projects'
+
 import {
   findComponentTemplate,
   findConnectionTemplate,
@@ -65,7 +67,10 @@ function componentFromTemplate(
     templateId,
     category: template.category || 'custom',
     type: template.type || 'custom',
-    name: name || template.name || 'Untitled Component',
+    name:
+      name ||
+      template.name ||
+      'Untitled Component',
     technology:
       technology ?? template.technology ?? '',
     description:
@@ -122,9 +127,18 @@ function normalizeComponent(component = {}) {
       '#475569',
     icon: component.icon || '',
     position: {
-      x: numberOrFallback(component.position?.x, 0),
-      y: numberOrFallback(component.position?.y, 0.6),
-      z: numberOrFallback(component.position?.z, 0),
+      x: numberOrFallback(
+        component.position?.x,
+        0,
+      ),
+      y: numberOrFallback(
+        component.position?.y,
+        0.6,
+      ),
+      z: numberOrFallback(
+        component.position?.z,
+        0,
+      ),
     },
     metadata: component.metadata || {},
   }
@@ -132,11 +146,15 @@ function normalizeComponent(component = {}) {
 
 function normalizeConnection(connection = {}) {
   const catalogTemplate = connection.templateId
-    ? findConnectionTemplate(connection.templateId)
+    ? findConnectionTemplate(
+        connection.templateId,
+      )
     : null
 
   return {
-    id: connection.id || createConnectionId(),
+    id:
+      connection.id ||
+      createConnectionId(),
     templateId:
       connection.templateId ||
       catalogTemplate?.id ||
@@ -153,7 +171,8 @@ function normalizeConnection(connection = {}) {
       catalogTemplate?.protocol ??
       '',
     direction:
-      connection.direction || 'unidirectional',
+      connection.direction ||
+      'unidirectional',
     label:
       connection.label ||
       catalogTemplate?.name ||
@@ -174,7 +193,8 @@ function connectionExists(
       connection.target === candidate.target &&
       connection.connectionType ===
         candidate.connectionType &&
-      connection.protocol === candidate.protocol &&
+      connection.protocol ===
+        candidate.protocol &&
       connection.label === candidate.label,
   )
 }
@@ -185,7 +205,11 @@ const starterFrontend = componentFromTemplate(
     id: 'frontend',
     name: 'React Frontend',
     technology: 'React',
-    position: { x: -3, y: 0.6, z: 0 },
+    position: {
+      x: -3,
+      y: 0.6,
+      z: 0,
+    },
   },
 )
 
@@ -195,7 +219,11 @@ const starterBackend = componentFromTemplate(
     id: 'backend',
     name: 'FastAPI Backend',
     technology: 'FastAPI',
-    position: { x: 0, y: 0.6, z: 0 },
+    position: {
+      x: 0,
+      y: 0.6,
+      z: 0,
+    },
   },
 )
 
@@ -205,7 +233,11 @@ const starterDatabase = componentFromTemplate(
     id: 'database',
     name: 'PostgreSQL Database',
     technology: 'PostgreSQL',
-    position: { x: 3, y: 0.6, z: 0 },
+    position: {
+      x: 3,
+      y: 0.6,
+      z: 0,
+    },
   },
 )
 
@@ -240,6 +272,14 @@ const starterModel = {
 export const useArchitectureStore = create(
   (set, get) => ({
     model: starterModel,
+    projectName: starterModel.name,
+
+    projects: [],
+    selectedProjectId: null,
+    isProjectManagerOpen: false,
+    isProjectsLoading: false,
+    projectsError: null,
+    projectsLastRefreshedAt: null,
 
     selectedId: null,
     selectedConnectionId: null,
@@ -285,7 +325,139 @@ export const useArchitectureStore = create(
         connectionTargetIds: [],
         isConnectionBuilderOpen: false,
         isDraggingComponent: false,
+        projectName:
+          model?.name ||
+          'Untitled Architecture',
       }),
+
+    /*
+     * Project management
+     */
+    setProjectName: (projectName) => {
+      const normalizedName = String(
+        projectName ?? '',
+      )
+
+      set((state) => ({
+        projectName: normalizedName,
+        model: {
+          ...state.model,
+          name: normalizedName,
+        },
+      }))
+    },
+
+    openProjectManager: () => {
+      set({
+        isProjectManagerOpen: true,
+      })
+
+      return get().refreshProjects()
+    },
+
+    closeProjectManager: () =>
+      set({
+        isProjectManagerOpen: false,
+        projectsError: null,
+      }),
+
+    selectProject: (projectId) => {
+      const normalizedProjectId =
+        projectId == null
+          ? null
+          : String(projectId)
+
+      if (normalizedProjectId === null) {
+        set({
+          selectedProjectId: null,
+        })
+
+        return {
+          success: true,
+          project: null,
+        }
+      }
+
+      const project = get().projects.find(
+        (candidate) =>
+          candidate.id ===
+          normalizedProjectId,
+      )
+
+      if (!project) {
+        return {
+          success: false,
+          error:
+            'The selected project is not available.',
+        }
+      }
+
+      set({
+        selectedProjectId: project.id,
+      })
+
+      return {
+        success: true,
+        project,
+      }
+    },
+
+    clearProjectSelection: () =>
+      set({
+        selectedProjectId: null,
+      }),
+
+    refreshProjects: async () => {
+      set({
+        isProjectsLoading: true,
+        projectsError: null,
+      })
+
+      try {
+        const projects =
+          await getProjectSummaries()
+
+        const selectedProjectStillExists =
+          projects.some(
+            (project) =>
+              project.id ===
+              get().selectedProjectId,
+          )
+
+        set({
+          projects,
+          selectedProjectId:
+            selectedProjectStillExists
+              ? get().selectedProjectId
+              : null,
+          isProjectsLoading: false,
+          projectsError: null,
+          projectsLastRefreshedAt:
+            new Date().toISOString(),
+        })
+
+        return {
+          success: true,
+          projects,
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Unable to retrieve the project list.'
+
+        set({
+          isProjectsLoading: false,
+          projectsError: message,
+        })
+
+        return {
+          success: false,
+          error: message,
+          projects: [],
+        }
+      }
+    },
 
     /*
      * Selection
@@ -318,9 +490,10 @@ export const useArchitectureStore = create(
      */
     setSidebarTab: (tab) => {
       if (
-        !['components', 'connections'].includes(
-          tab,
-        )
+        ![
+          'components',
+          'connections',
+        ].includes(tab)
       ) {
         return
       }
@@ -330,12 +503,14 @@ export const useArchitectureStore = create(
 
         activeComponentTemplateId:
           tab === 'components'
-            ? get().activeComponentTemplateId
+            ? get()
+                .activeComponentTemplateId
             : null,
 
         activeConnectionTemplateId:
           tab === 'connections'
-            ? get().activeConnectionTemplateId
+            ? get()
+                .activeConnectionTemplateId
             : null,
 
         connectionSourceId:
@@ -350,12 +525,15 @@ export const useArchitectureStore = create(
 
         isConnectionBuilderOpen:
           tab === 'connections'
-            ? get().isConnectionBuilderOpen
+            ? get()
+                .isConnectionBuilderOpen
             : false,
       })
     },
 
-    toggleComponentPlacement: (templateId) =>
+    toggleComponentPlacement: (
+      templateId,
+    ) =>
       set((state) => ({
         sidebarTab: 'components',
 
@@ -380,7 +558,9 @@ export const useArchitectureStore = create(
         activeComponentTemplateId: null,
       }),
 
-    toggleConnectionTemplate: (templateId) =>
+    toggleConnectionTemplate: (
+      templateId,
+    ) =>
       set((state) => {
         const isDeselecting =
           state.activeConnectionTemplateId ===
@@ -443,7 +623,10 @@ export const useArchitectureStore = create(
       }
     },
 
-    placeComponent: (template, position) => {
+    placeComponent: (
+      template,
+      position,
+    ) => {
       if (!template || !position) {
         return {
           success: false,
@@ -664,7 +847,9 @@ export const useArchitectureStore = create(
     beginConnection: (sourceId) => {
       const state = get()
 
-      if (!state.activeConnectionTemplateId) {
+      if (
+        !state.activeConnectionTemplateId
+      ) {
         return {
           success: false,
           error:
@@ -699,7 +884,9 @@ export const useArchitectureStore = create(
       }
     },
 
-    toggleConnectionTarget: (targetId) => {
+    toggleConnectionTarget: (
+      targetId,
+    ) => {
       const state = get()
 
       if (!state.connectionSourceId) {
@@ -711,7 +898,8 @@ export const useArchitectureStore = create(
       }
 
       if (
-        targetId === state.connectionSourceId
+        targetId ===
+        state.connectionSourceId
       ) {
         return {
           success: false,
@@ -791,7 +979,8 @@ export const useArchitectureStore = create(
       }
 
       if (
-        state.connectionTargetIds.length === 0
+        state.connectionTargetIds.length ===
+        0
       ) {
         return {
           success: false,
@@ -908,7 +1097,10 @@ export const useArchitectureStore = create(
             component.id === target,
         )
 
-      if (!sourceExists || !targetExists) {
+      if (
+        !sourceExists ||
+        !targetExists
+      ) {
         return {
           success: false,
           error:
@@ -1019,7 +1211,10 @@ export const useArchitectureStore = create(
             updatedConnection.target,
         )
 
-      if (!sourceExists || !targetExists) {
+      if (
+        !sourceExists ||
+        !targetExists
+      ) {
         return {
           success: false,
           error:
