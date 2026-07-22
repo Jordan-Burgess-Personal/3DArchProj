@@ -7,6 +7,7 @@ import {
 import AIAssistant from './components/AIAssistant'
 import ConnectionBuilderPanel from './components/ConnectionBuilderPanel'
 import ConnectionEditorPanel from './components/ConnectionEditorPanel'
+import ProjectManagerModal from './components/projects/ProjectManagerModal'
 import SelectedNodePanel from './components/SelectedNodePanel'
 import Sidebar from './components/Sidebar'
 import ApplicationLayout from './layouts/ApplicationLayout'
@@ -58,33 +59,37 @@ function NotFound() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route element={<ApplicationLayout />}>
-        <Route
-          index
-          element={
-            <Navigate
-              to="/dashboard"
-              replace
-            />
-          }
-        />
+    <>
+      <Routes>
+        <Route element={<ApplicationLayout />}>
+          <Route
+            index
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
 
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
 
-        <Route
-          path="/workspace"
-          element={<Workspace />}
-        />
+          <Route
+            path="/workspace"
+            element={<Workspace />}
+          />
 
-        <Route
-          path="*"
-          element={<NotFound />}
-        />
-      </Route>
-    </Routes>
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+        </Route>
+      </Routes>
+
+      <ProjectManagerModal />
+    </>
   )
 }

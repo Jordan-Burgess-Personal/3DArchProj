@@ -1,34 +1,36 @@
 import {
+  FolderKanban,
   FolderPlus,
   Home,
-  LayoutDashboard,
   Menu,
-  Network,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+
+import { useArchitectureStore } from '../store/architectureStore'
 
 const navigationItems = [
   {
     label: 'Home',
-    description: 'Return to the project home page',
-    to: '/',
+    description:
+      'Return to the project home page',
+    to: '/dashboard',
     icon: Home,
   },
   {
-    label: 'Projects',
-    description: 'View and manage saved projects',
-    to: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
     label: 'New Project',
-    description: 'Open a blank architecture workspace',
+    description:
+      'Open a blank architecture workspace',
     to: '/workspace',
     icon: FolderPlus,
   },
 ]
 
 export default function TopHoverNavigation() {
+  const openProjectManager =
+    useArchitectureStore(
+      (state) => state.openProjectManager,
+    )
+
   return (
     /*
      * The wrapper controls the hover state. Because the dropdown
@@ -74,38 +76,96 @@ export default function TopHoverNavigation() {
         "
       >
         <div className="grid grid-cols-3 gap-2">
-          {navigationItems.map((item) => {
-            const Icon = item.icon
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              [
+                'flex min-w-0 items-center gap-3 rounded-lg border p-3 transition',
+                isActive
+                  ? 'border-indigo-400 bg-indigo-500/20 text-white'
+                  : 'border-transparent bg-slate-900 text-slate-300 hover:border-slate-600 hover:bg-slate-800 hover:text-white',
+              ].join(' ')
+            }
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
+              <Home size={18} />
+            </span>
 
-            return (
-              <NavLink
-                key={item.label}
-                to={item.to}
-                className={({ isActive }) =>
-                  [
-                    'flex min-w-0 items-center gap-3 rounded-lg border p-3 transition',
-                    isActive
-                      ? 'border-indigo-400 bg-indigo-500/20 text-white'
-                      : 'border-transparent bg-slate-900 text-slate-300 hover:border-slate-600 hover:bg-slate-800 hover:text-white',
-                  ].join(' ')
-                }
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
-                  <Icon size={18} />
-                </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                Home
+              </span>
 
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold">
-                    {item.label}
-                  </span>
+              <span className="mt-0.5 block text-[11px] leading-4 text-slate-400">
+                Return to the project home page
+              </span>
+            </span>
+          </NavLink>
 
-                  <span className="mt-0.5 block text-[11px] leading-4 text-slate-400">
-                    {item.description}
-                  </span>
-                </span>
-              </NavLink>
+          <button
+            type="button"
+            onClick={openProjectManager}
+            className={[
+              'flex min-w-0 items-center gap-3',
+              'rounded-lg border border-transparent',
+              'bg-slate-900 p-3 text-left',
+              'text-slate-300 transition',
+              'hover:border-slate-600',
+              'hover:bg-slate-800 hover:text-white',
+            ].join(' ')}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
+              <FolderKanban size={18} />
+            </span>
+
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                Projects
+              </span>
+
+              <span className="mt-0.5 block text-[11px] leading-4 text-slate-400">
+                View and manage saved projects
+              </span>
+            </span>
+          </button>
+
+          {navigationItems
+            .filter(
+              (item) =>
+                item.label === 'New Project',
             )
-          })}
+            .map((item) => {
+              const Icon = item.icon
+
+              return (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    [
+                      'flex min-w-0 items-center gap-3 rounded-lg border p-3 transition',
+                      isActive
+                        ? 'border-indigo-400 bg-indigo-500/20 text-white'
+                        : 'border-transparent bg-slate-900 text-slate-300 hover:border-slate-600 hover:bg-slate-800 hover:text-white',
+                    ].join(' ')
+                  }
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
+                    <Icon size={18} />
+                  </span>
+
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold">
+                      {item.label}
+                    </span>
+
+                    <span className="mt-0.5 block text-[11px] leading-4 text-slate-400">
+                      {item.description}
+                    </span>
+                  </span>
+                </NavLink>
+              )
+            })}
         </div>
       </nav>
     </div>
