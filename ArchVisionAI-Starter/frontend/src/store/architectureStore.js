@@ -91,7 +91,12 @@ function createConnectionId() {
     .slice(2)}`
 }
 
-function normalizeComponent(component) {
+function numberOrFallback(value, fallback) {
+  const parsedValue = Number(value)
+  return Number.isFinite(parsedValue) ? parsedValue : fallback
+}
+
+function normalizeComponent(component = {}) {
   return {
     id:
       component.id ||
@@ -104,15 +109,15 @@ function normalizeComponent(component) {
     color: component.color || '#475569',
     icon: component.icon || '',
     position: {
-      x: Number(component.position?.x) || 0,
-      y: Number(component.position?.y) || 0.6,
-      z: Number(component.position?.z) || 0,
+      x: numberOrFallback(component.position?.x, 0),
+      y: numberOrFallback(component.position?.y, 0.6),
+      z: numberOrFallback(component.position?.z, 0),
     },
     metadata: component.metadata || {},
   }
 }
 
-function normalizeConnection(connection) {
+function normalizeConnection(connection = {}) {
   return {
     id: connection.id || createConnectionId(),
     source: connection.source,
@@ -122,723 +127,790 @@ function normalizeConnection(connection) {
       connection.connection_type ||
       'dependency',
     protocol: connection.protocol || '',
-    direction:
-      connection.direction || 'unidirectional',
+    direction: connection.direction || 'unidirectional',
     label: connection.label || '',
     metadata: connection.metadata || {},
   }
 }
 
-function connectionExists(
-  connections,
-  {
-    source,
-    target,
-    connectionType,
-    protocol,
-    label,
-  },
-) {
+function connectionExists(connections, candidate, ignoredId = null) {
   return connections.some(
     (connection) =>
-      connection.source === source &&
-      connection.target === target &&
-      connection.connectionType === connectionType &&
-      connection.protocol === protocol &&
-      connection.label === label,
+      connection.id !== ignoredId &&
+      connection.source === candidate.source &&
+      connection.target === candidate.target &&
+      connection.connectionType === candidate.connectionType &&
+      connection.protocol === candidate.protocol &&
+      connection.label === candidate.label,
   )
 }
 
-export const useArchitectureStore = create(
-  (set, get) => ({
-    model: starterModel,
+export const useArchitectureStore = create((set, get) => ({
+  model: starterModel,
 
-    selectedId: null,
-    selectedConnectionId: null,
+  selectedId: null,
+  selectedConnectionId: null,
 
-    sidebarTab: 'components',
-    activeComponentTemplateId: null,
-    activeConnectionTemplateId: null,
-    isDraggingComponent: false,
+  sidebarTab: 'components',
+  activeComponentTemplateId: null,
+  activeConnectionTemplateId: null,
 
-    /*
-     * Replace the entire architecture model.
-     * Used when loading a saved project or applying
-     * an AI-generated architecture.
-     */
-    setModel: (model) =>
-      set({
-        model: {
-          name:
-            model?.name ||
-            'Untitled Architecture',
-          description:
-            model?.description || '',
-          components: Array.isArray(
-            model?.components,
-          )
-            ? model.components.map(
-                normalizeComponent,
-              )
-            : [],
-          connections: Array.isArray(
-            model?.connections,
-          )
-            ? model.connections.map(
-                normalizeConnection,
-              )
-            : [],
-        },
-        selectedId: null,
-        selectedConnectionId: null,
-        activeComponentTemplateId: null,
-        activeConnectionTemplateId: null,
-        isDraggingComponent: false,
-      }),
+  isDraggingComponent: false,
 
-    /*
-     * Component selection
-     */
-    select: (id) =>
-      set({
-        selectedId: id,
-        selectedConnectionId: null,
-      }),
+  connectionSourceId: null,
+  connectionTargetIds: [],
+  isConnectionBuilderOpen: false,
 
-    clearSelection: () =>
-      set({
-        selectedId: null,
-        selectedConnectionId: null,
-      }),
+  setModel: (model) =>
+    set({
+      model: {
+        name: model?.name || 'Untitled Architecture',
+        description: model?.description || '',
+        components: Array.isArray(model?.components)
+          ? model.components.map(normalizeComponent)
+          : [],
+        connections: Array.isArray(model?.connections)
+          ? model.connections.map(normalizeConnection)
+          : [],
+      },
+      selectedId: null,
+      selectedConnectionId: null,
+      activeComponentTemplateId: null,
+      activeConnectionTemplateId: null,
+      isDraggingComponent: false,
+      connectionSourceId: null,
+      connectionTargetIds: [],
+      isConnectionBuilderOpen: false,
+    }),
 
-    /*
-     * Connection selection
-     */
-    selectConnection: (id) =>
-      set({
-        selectedConnectionId: id,
-        selectedId: null,
-      }),
+  /*
+   * Selection
+   */
+  select: (id) =>
+    set({
+      selectedId: id,
+      selectedConnectionId: null,
+    }),
 
-    clearConnectionSelection: () =>
-      set({
-        selectedConnectionId: null,
-      }),
+  clearSelection: () =>
+    set({
+      selectedId: null,
+      selectedConnectionId: null,
+    }),
 
-    /*
-     * Sidebar tabs and tool selection
-     */
-    setSidebarTab: (tab) => {
-      if (
-        !['components', 'connections'].includes(tab)
-      ) {
-        return
-      }
+  selectConnection: (id) =>
+    set({
+      selectedConnectionId: id,
+      selectedId: null,
+    }),
 
-      set({
-        sidebarTab: tab,
-        activeComponentTemplateId:
-          tab === 'components'
-            ? get().activeComponentTemplateId
-            : null,
-        activeConnectionTemplateId:
-          tab === 'connections'
-            ? get().activeConnectionTemplateId
-            : null,
-      })
-    },
+  clearConnectionSelection: () =>
+    set({
+      selectedConnectionId: null,
+    }),
 
-    toggleComponentPlacement: (templateId) =>
-      set((state) => ({
-        sidebarTab: 'components',
-        activeComponentTemplateId:
-          state.activeComponentTemplateId ===
-          templateId
-            ? null
-            : templateId,
-        activeConnectionTemplateId: null,
-        selectedId: null,
-        selectedConnectionId: null,
-      })),
+  /*
+   * Sidebar
+   */
+  setSidebarTab: (tab) => {
+    if (!['components', 'connections'].includes(tab)) {
+      return
+    }
 
-    clearComponentPlacement: () =>
-      set({
-        activeComponentTemplateId: null,
-      }),
+    set({
+      sidebarTab: tab,
+      activeComponentTemplateId:
+        tab === 'components'
+          ? get().activeComponentTemplateId
+          : null,
+      activeConnectionTemplateId:
+        tab === 'connections'
+          ? get().activeConnectionTemplateId
+          : null,
+      connectionSourceId:
+        tab === 'connections'
+          ? get().connectionSourceId
+          : null,
+      connectionTargetIds:
+        tab === 'connections'
+          ? get().connectionTargetIds
+          : [],
+      isConnectionBuilderOpen:
+        tab === 'connections'
+          ? get().isConnectionBuilderOpen
+          : false,
+    })
+  },
 
-    toggleConnectionTemplate: (templateId) =>
-      set((state) => ({
+  toggleComponentPlacement: (templateId) =>
+    set((state) => ({
+      sidebarTab: 'components',
+      activeComponentTemplateId:
+        state.activeComponentTemplateId === templateId
+          ? null
+          : templateId,
+      activeConnectionTemplateId: null,
+      selectedId: null,
+      selectedConnectionId: null,
+      connectionSourceId: null,
+      connectionTargetIds: [],
+      isConnectionBuilderOpen: false,
+    })),
+
+  clearComponentPlacement: () =>
+    set({
+      activeComponentTemplateId: null,
+    }),
+
+  toggleConnectionTemplate: (templateId) =>
+    set((state) => {
+      const isDeselecting =
+        state.activeConnectionTemplateId === templateId
+
+      return {
         sidebarTab: 'connections',
-        activeConnectionTemplateId:
-          state.activeConnectionTemplateId ===
-          templateId
-            ? null
-            : templateId,
+        activeConnectionTemplateId: isDeselecting
+          ? null
+          : templateId,
         activeComponentTemplateId: null,
         selectedId: null,
         selectedConnectionId: null,
-      })),
+        connectionSourceId: null,
+        connectionTargetIds: [],
+        isConnectionBuilderOpen: false,
+      }
+    }),
 
-    clearConnectionTemplate: () =>
-      set({
-        activeConnectionTemplateId: null,
-      }),
+  clearConnectionTemplate: () =>
+    set({
+      activeConnectionTemplateId: null,
+      connectionSourceId: null,
+      connectionTargetIds: [],
+      isConnectionBuilderOpen: false,
+    }),
 
-    setDraggingComponent: (
+  setDraggingComponent: (isDraggingComponent) =>
+    set({
       isDraggingComponent,
-    ) =>
-      set({
-        isDraggingComponent,
-      }),
+    }),
 
-    /*
-     * Component CRUD
-     */
-    addComponent: (component) => {
-      const normalizedComponent =
-        normalizeComponent(component)
+  /*
+   * Component CRUD
+   */
+  addComponent: (component) => {
+    const normalizedComponent = normalizeComponent(component)
 
-      set((state) => ({
-        model: {
-          ...state.model,
-          components: [
-            ...state.model.components,
-            normalizedComponent,
-          ],
-        },
-      }))
+    set((state) => ({
+      model: {
+        ...state.model,
+        components: [
+          ...state.model.components,
+          normalizedComponent,
+        ],
+      },
+    }))
 
+    return {
+      success: true,
+      component: normalizedComponent,
+    }
+  },
+
+  placeComponent: (template, position) => {
+    if (!template || !position) {
       return {
-        success: true,
-        component: normalizedComponent,
+        success: false,
+        error: 'A component template and position are required.',
       }
-    },
+    }
 
-    placeComponent: (
-      template,
+    const component = normalizeComponent({
+      id: createComponentId(template.type || 'component'),
+      category: template.category || 'custom',
+      type: template.type || 'custom',
+      name: template.name || 'Untitled Component',
+      technology: template.technology || '',
+      description: template.description || '',
+      color: template.color || '#475569',
+      icon: template.iconName || '',
       position,
-    ) => {
-      if (!template || !position) {
-        return {
-          success: false,
-          error:
-            'A component template and position are required.',
-        }
-      }
+      metadata: {},
+    })
 
-      const component =
-        normalizeComponent({
-          id: createComponentId(
-            template.type || 'component',
-          ),
-          category:
-            template.category || 'custom',
-          type:
-            template.type || 'custom',
-          name:
-            template.name ||
-            'Untitled Component',
-          technology:
-            template.technology || '',
-          description:
-            template.description || '',
-          color:
-            template.color || '#475569',
-          icon:
-            template.iconName || '',
-          position,
-          metadata: {},
-        })
+    set((state) => ({
+      model: {
+        ...state.model,
+        components: [...state.model.components, component],
+      },
+      selectedId: component.id,
+      selectedConnectionId: null,
+    }))
 
-      set((state) => ({
-        model: {
-          ...state.model,
-          components: [
-            ...state.model.components,
-            component,
-          ],
-        },
-        selectedId: component.id,
-        selectedConnectionId: null,
-      }))
+    return {
+      success: true,
+      component,
+    }
+  },
 
+  updateComponent: (id, updates) => {
+    const state = get()
+
+    const existingComponent = state.model.components.find(
+      (component) => component.id === id,
+    )
+
+    if (!existingComponent) {
       return {
-        success: true,
-        component,
+        success: false,
+        error: 'The component does not exist.',
       }
-    },
+    }
 
-    updateComponent: (id, updates) => {
-      const state = get()
+    const updatedComponent = normalizeComponent({
+      ...existingComponent,
+      ...updates,
+      id: existingComponent.id,
+      position: updates.position
+        ? {
+            ...existingComponent.position,
+            ...updates.position,
+          }
+        : existingComponent.position,
+      metadata: updates.metadata
+        ? {
+            ...existingComponent.metadata,
+            ...updates.metadata,
+          }
+        : existingComponent.metadata,
+    })
 
-      const existingComponent =
-        state.model.components.find(
+    set((currentState) => ({
+      model: {
+        ...currentState.model,
+        components: currentState.model.components.map(
           (component) =>
-            component.id === id,
-        )
+            component.id === id
+              ? updatedComponent
+              : component,
+        ),
+      },
+    }))
 
-      if (!existingComponent) {
-        return {
-          success: false,
-          error:
-            'The component does not exist.',
-        }
-      }
+    return {
+      success: true,
+      component: updatedComponent,
+    }
+  },
 
-      const updatedComponent =
-        normalizeComponent({
-          ...existingComponent,
-          ...updates,
-          id: existingComponent.id,
-          position: updates.position
-            ? {
-                ...existingComponent.position,
-                ...updates.position,
-              }
-            : existingComponent.position,
-          metadata: updates.metadata
-            ? {
-                ...existingComponent.metadata,
-                ...updates.metadata,
-              }
-            : existingComponent.metadata,
-        })
+  moveComponent: (id, position) => {
+    const state = get()
 
-      set((currentState) => ({
-        model: {
-          ...currentState.model,
-          components:
-            currentState.model.components.map(
-              (component) =>
-                component.id === id
-                  ? updatedComponent
-                  : component,
-            ),
-        },
-      }))
+    const existingComponent = state.model.components.find(
+      (component) => component.id === id,
+    )
 
+    if (!existingComponent) {
       return {
-        success: true,
-        component: updatedComponent,
+        success: false,
+        error: 'The component does not exist.',
       }
-    },
+    }
 
-    moveComponent: (id, position) => {
-      const state = get()
+    const normalizedPosition = {
+      x: numberOrFallback(
+        position?.x,
+        existingComponent.position.x,
+      ),
+      y: numberOrFallback(
+        position?.y,
+        existingComponent.position.y,
+      ),
+      z: numberOrFallback(
+        position?.z,
+        existingComponent.position.z,
+      ),
+    }
 
-      const existingComponent =
-        state.model.components.find(
+    set((currentState) => ({
+      model: {
+        ...currentState.model,
+        components: currentState.model.components.map(
           (component) =>
-            component.id === id,
-        )
+            component.id === id
+              ? {
+                  ...component,
+                  position: normalizedPosition,
+                }
+              : component,
+        ),
+      },
+    }))
 
-      if (!existingComponent) {
-        return {
-          success: false,
-          error:
-            'The component does not exist.',
-        }
-      }
+    return {
+      success: true,
+      position: normalizedPosition,
+    }
+  },
 
-      const normalizedPosition = {
-        x:
-          Number(position?.x) ||
-          0,
-        y:
-          Number(position?.y) ||
-          0.6,
-        z:
-          Number(position?.z) ||
-          0,
-      }
-
-      set((currentState) => ({
-        model: {
-          ...currentState.model,
-          components:
-            currentState.model.components.map(
-              (component) =>
-                component.id === id
-                  ? {
-                      ...component,
-                      position:
-                        normalizedPosition,
-                    }
-                  : component,
-            ),
-        },
-      }))
-
-      return {
-        success: true,
-        position: normalizedPosition,
-      }
-    },
-
-    removeComponent: (id) =>
-      set((state) => {
-        const removedConnectionIds =
-          state.model.connections
-            .filter(
-              (connection) =>
-                connection.source === id ||
-                connection.target === id,
-            )
-            .map(
-              (connection) =>
-                connection.id,
-            )
-
-        return {
-          model: {
-            ...state.model,
-            components:
-              state.model.components.filter(
-                (component) =>
-                  component.id !== id,
-              ),
-            connections:
-              state.model.connections.filter(
-                (connection) =>
-                  connection.source !== id &&
-                  connection.target !== id,
-              ),
-          },
-          selectedId:
-            state.selectedId === id
-              ? null
-              : state.selectedId,
-          selectedConnectionId:
-            removedConnectionIds.includes(
-              state.selectedConnectionId,
-            )
-              ? null
-              : state.selectedConnectionId,
-        }
-      }),
-
-    /*
-     * Connection CRUD
-     */
-    addConnection: ({
-      source,
-      target,
-      connectionType = 'dependency',
-      protocol = '',
-      direction = 'unidirectional',
-      label = '',
-      metadata = {},
-    }) => {
-      const state = get()
-
-      if (!source || !target) {
-        return {
-          success: false,
-          error:
-            'A source and target component are required.',
-        }
-      }
-
-      if (source === target) {
-        return {
-          success: false,
-          error:
-            'A component cannot be connected to itself.',
-        }
-      }
-
-      const sourceExists =
-        state.model.components.some(
-          (component) =>
-            component.id === source,
-        )
-
-      const targetExists =
-        state.model.components.some(
-          (component) =>
-            component.id === target,
-        )
-
-      if (
-        !sourceExists ||
-        !targetExists
-      ) {
-        return {
-          success: false,
-          error:
-            'The source or target component does not exist.',
-        }
-      }
-
-      const normalizedConnection =
-        normalizeConnection({
-          source,
-          target,
-          connectionType,
-          protocol,
-          direction,
-          label,
-          metadata,
-        })
-
-      const duplicateExists =
-        connectionExists(
-          state.model.connections,
-          normalizedConnection,
-        )
-
-      if (duplicateExists) {
-        return {
-          success: false,
-          error:
-            'An identical connection already exists.',
-        }
-      }
-
-      set((currentState) => ({
-        model: {
-          ...currentState.model,
-          connections: [
-            ...currentState.model.connections,
-            normalizedConnection,
-          ],
-        },
-        selectedConnectionId:
-          normalizedConnection.id,
-        selectedId: null,
-      }))
-
-      return {
-        success: true,
-        connection:
-          normalizedConnection,
-      }
-    },
-
-    updateConnection: (id, updates) => {
-      const state = get()
-
-      const existingConnection =
-        state.model.connections.find(
+  removeComponent: (id) =>
+    set((state) => {
+      const removedConnectionIds = state.model.connections
+        .filter(
           (connection) =>
-            connection.id === id,
+            connection.source === id ||
+            connection.target === id,
         )
-
-      if (!existingConnection) {
-        return {
-          success: false,
-          error:
-            'The connection does not exist.',
-        }
-      }
-
-      const updatedConnection =
-        normalizeConnection({
-          ...existingConnection,
-          ...updates,
-          id: existingConnection.id,
-          metadata: updates.metadata
-            ? {
-                ...existingConnection.metadata,
-                ...updates.metadata,
-              }
-            : existingConnection.metadata,
-        })
-
-      if (
-        updatedConnection.source ===
-        updatedConnection.target
-      ) {
-        return {
-          success: false,
-          error:
-            'A component cannot be connected to itself.',
-        }
-      }
-
-      const sourceExists =
-        state.model.components.some(
-          (component) =>
-            component.id ===
-            updatedConnection.source,
-        )
-
-      const targetExists =
-        state.model.components.some(
-          (component) =>
-            component.id ===
-            updatedConnection.target,
-        )
-
-      if (
-        !sourceExists ||
-        !targetExists
-      ) {
-        return {
-          success: false,
-          error:
-            'The source or target component does not exist.',
-        }
-      }
-
-      const duplicateExists =
-        state.model.connections
-          .filter(
-            (connection) =>
-              connection.id !== id,
-          )
-          .some(
-            (connection) =>
-              connection.source ===
-                updatedConnection.source &&
-              connection.target ===
-                updatedConnection.target &&
-              connection.connectionType ===
-                updatedConnection.connectionType &&
-              connection.protocol ===
-                updatedConnection.protocol &&
-              connection.label ===
-                updatedConnection.label,
-          )
-
-      if (duplicateExists) {
-        return {
-          success: false,
-          error:
-            'An identical connection already exists.',
-        }
-      }
-
-      set((currentState) => ({
-        model: {
-          ...currentState.model,
-          connections:
-            currentState.model.connections.map(
-              (connection) =>
-                connection.id === id
-                  ? updatedConnection
-                  : connection,
-            ),
-        },
-      }))
+        .map((connection) => connection.id)
 
       return {
-        success: true,
-        connection: updatedConnection,
-      }
-    },
-
-    removeConnection: (id) =>
-      set((state) => ({
         model: {
           ...state.model,
-          connections:
-            state.model.connections.filter(
-              (connection) =>
-                connection.id !== id,
-            ),
+          components: state.model.components.filter(
+            (component) => component.id !== id,
+          ),
+          connections: state.model.connections.filter(
+            (connection) =>
+              connection.source !== id &&
+              connection.target !== id,
+          ),
         },
+        selectedId:
+          state.selectedId === id
+            ? null
+            : state.selectedId,
         selectedConnectionId:
-          state.selectedConnectionId === id
+          removedConnectionIds.includes(
+            state.selectedConnectionId,
+          )
             ? null
             : state.selectedConnectionId,
-      })),
-
-    /*
-     * Lookup helpers
-     */
-    getComponent: (id) =>
-      get().model.components.find(
-        (component) =>
-          component.id === id,
-      ),
-
-    getConnection: (id) =>
-      get().model.connections.find(
-        (connection) =>
-          connection.id === id,
-      ),
-
-    getConnectionsForComponent: (
-      componentId,
-    ) =>
-      get().model.connections.filter(
-        (connection) =>
-          connection.source ===
-            componentId ||
-          connection.target ===
-            componentId,
-      ),
-
-    getOutgoingConnections: (
-      componentId,
-    ) =>
-      get().model.connections.filter(
-        (connection) =>
-          connection.source ===
-          componentId,
-      ),
-
-    getIncomingConnections: (
-      componentId,
-    ) =>
-      get().model.connections.filter(
-        (connection) =>
-          connection.target ===
-          componentId,
-      ),
-
-    /*
-     * Convert frontend camelCase properties into
-     * the backend API's expected naming.
-     */
-    serializeModelForApi: () => {
-      const { model } = get()
-
-      return {
-        name: model.name,
-        description: model.description,
-        components:
-          model.components.map(
-            (component) => ({
-              id: component.id,
-              category:
-                component.category,
-              type: component.type,
-              name: component.name,
-              technology:
-                component.technology,
-              description:
-                component.description,
-              color: component.color,
-              icon: component.icon,
-              position:
-                component.position,
-              metadata:
-                component.metadata,
-            }),
+        connectionSourceId:
+          state.connectionSourceId === id
+            ? null
+            : state.connectionSourceId,
+        connectionTargetIds:
+          state.connectionTargetIds.filter(
+            (targetId) => targetId !== id,
           ),
-        connections:
-          model.connections.map(
-            (connection) => ({
-              id: connection.id,
-              source:
-                connection.source,
-              target:
-                connection.target,
-              connection_type:
-                connection.connectionType,
-              protocol:
-                connection.protocol,
-              direction:
-                connection.direction,
-              label:
-                connection.label,
-              metadata:
-                connection.metadata,
-            }),
-          ),
+        isConnectionBuilderOpen:
+          state.connectionSourceId === id
+            ? false
+            : state.isConnectionBuilderOpen,
       }
-    },
-  }),
-)
+    }),
+
+  /*
+   * Connection builder
+   */
+  beginConnection: (sourceId) => {
+    const state = get()
+
+    if (!state.activeConnectionTemplateId) {
+      return {
+        success: false,
+        error: 'Select a connection type first.',
+      }
+    }
+
+    const sourceExists = state.model.components.some(
+      (component) => component.id === sourceId,
+    )
+
+    if (!sourceExists) {
+      return {
+        success: false,
+        error: 'The source component does not exist.',
+      }
+    }
+
+    set({
+      connectionSourceId: sourceId,
+      connectionTargetIds: [],
+      isConnectionBuilderOpen: true,
+      selectedId: sourceId,
+      selectedConnectionId: null,
+    })
+
+    return {
+      success: true,
+    }
+  },
+
+  toggleConnectionTarget: (targetId) => {
+    const state = get()
+
+    if (!state.connectionSourceId) {
+      return {
+        success: false,
+        error: 'Select a source component first.',
+      }
+    }
+
+    if (targetId === state.connectionSourceId) {
+      return {
+        success: false,
+        error: 'A component cannot connect to itself.',
+      }
+    }
+
+    const targetExists = state.model.components.some(
+      (component) => component.id === targetId,
+    )
+
+    if (!targetExists) {
+      return {
+        success: false,
+        error: 'The target component does not exist.',
+      }
+    }
+
+    set((currentState) => ({
+      connectionTargetIds:
+        currentState.connectionTargetIds.includes(targetId)
+          ? currentState.connectionTargetIds.filter(
+              (id) => id !== targetId,
+            )
+          : [...currentState.connectionTargetIds, targetId],
+    }))
+
+    return {
+      success: true,
+    }
+  },
+
+  addConnectionTarget: (targetId) => {
+    const state = get()
+
+    if (
+      !state.connectionTargetIds.includes(targetId) &&
+      targetId !== state.connectionSourceId
+    ) {
+      set({
+        connectionTargetIds: [
+          ...state.connectionTargetIds,
+          targetId,
+        ],
+      })
+    }
+  },
+
+  cancelConnectionBuilder: () =>
+    set({
+      connectionSourceId: null,
+      connectionTargetIds: [],
+      isConnectionBuilderOpen: false,
+      selectedId: null,
+    }),
+
+  completeConnectionBuilder: (
+    connectionTemplate,
+    overrides = {},
+  ) => {
+    const state = get()
+
+    if (!state.connectionSourceId) {
+      return {
+        success: false,
+        error: 'A source component is required.',
+      }
+    }
+
+    if (state.connectionTargetIds.length === 0) {
+      return {
+        success: false,
+        error: 'Select at least one target component.',
+      }
+    }
+
+    if (!connectionTemplate) {
+      return {
+        success: false,
+        error: 'A connection template is required.',
+      }
+    }
+
+    const createdConnections = []
+    const errors = []
+
+    state.connectionTargetIds.forEach((targetId) => {
+      const result = get().addConnection({
+        source: state.connectionSourceId,
+        target: targetId,
+        connectionType:
+          overrides.connectionType ||
+          connectionTemplate.connectionType,
+        protocol:
+          overrides.protocol ??
+          connectionTemplate.protocol ??
+          '',
+        direction:
+          overrides.direction || 'unidirectional',
+        label:
+          overrides.label ||
+          connectionTemplate.name ||
+          '',
+        metadata: overrides.metadata || {},
+      })
+
+      if (result.success) {
+        createdConnections.push(result.connection)
+      } else {
+        errors.push(result.error)
+      }
+    })
+
+    set({
+      connectionSourceId: null,
+      connectionTargetIds: [],
+      isConnectionBuilderOpen: false,
+      selectedId: null,
+      selectedConnectionId:
+        createdConnections.at(-1)?.id || null,
+    })
+
+    return {
+      success: createdConnections.length > 0,
+      createdConnections,
+      errors,
+    }
+  },
+
+  /*
+   * Connection CRUD
+   */
+  addConnection: ({
+    source,
+    target,
+    connectionType = 'dependency',
+    protocol = '',
+    direction = 'unidirectional',
+    label = '',
+    metadata = {},
+  }) => {
+    const state = get()
+
+    if (!source || !target) {
+      return {
+        success: false,
+        error: 'A source and target component are required.',
+      }
+    }
+
+    if (source === target) {
+      return {
+        success: false,
+        error: 'A component cannot be connected to itself.',
+      }
+    }
+
+    const sourceExists = state.model.components.some(
+      (component) => component.id === source,
+    )
+
+    const targetExists = state.model.components.some(
+      (component) => component.id === target,
+    )
+
+    if (!sourceExists || !targetExists) {
+      return {
+        success: false,
+        error: 'The source or target component does not exist.',
+      }
+    }
+
+    const normalizedConnection = normalizeConnection({
+      source,
+      target,
+      connectionType,
+      protocol,
+      direction,
+      label,
+      metadata,
+    })
+
+    if (
+      connectionExists(
+        state.model.connections,
+        normalizedConnection,
+      )
+    ) {
+      return {
+        success: false,
+        error: 'An identical connection already exists.',
+      }
+    }
+
+    set((currentState) => ({
+      model: {
+        ...currentState.model,
+        connections: [
+          ...currentState.model.connections,
+          normalizedConnection,
+        ],
+      },
+      selectedConnectionId: normalizedConnection.id,
+      selectedId: null,
+    }))
+
+    return {
+      success: true,
+      connection: normalizedConnection,
+    }
+  },
+
+  updateConnection: (id, updates) => {
+    const state = get()
+
+    const existingConnection = state.model.connections.find(
+      (connection) => connection.id === id,
+    )
+
+    if (!existingConnection) {
+      return {
+        success: false,
+        error: 'The connection does not exist.',
+      }
+    }
+
+    const updatedConnection = normalizeConnection({
+      ...existingConnection,
+      ...updates,
+      id: existingConnection.id,
+      metadata: updates.metadata
+        ? {
+            ...existingConnection.metadata,
+            ...updates.metadata,
+          }
+        : existingConnection.metadata,
+    })
+
+    if (updatedConnection.source === updatedConnection.target) {
+      return {
+        success: false,
+        error: 'A component cannot be connected to itself.',
+      }
+    }
+
+    const sourceExists = state.model.components.some(
+      (component) =>
+        component.id === updatedConnection.source,
+    )
+
+    const targetExists = state.model.components.some(
+      (component) =>
+        component.id === updatedConnection.target,
+    )
+
+    if (!sourceExists || !targetExists) {
+      return {
+        success: false,
+        error: 'The source or target component does not exist.',
+      }
+    }
+
+    if (
+      connectionExists(
+        state.model.connections,
+        updatedConnection,
+        id,
+      )
+    ) {
+      return {
+        success: false,
+        error: 'An identical connection already exists.',
+      }
+    }
+
+    set((currentState) => ({
+      model: {
+        ...currentState.model,
+        connections: currentState.model.connections.map(
+          (connection) =>
+            connection.id === id
+              ? updatedConnection
+              : connection,
+        ),
+      },
+    }))
+
+    return {
+      success: true,
+      connection: updatedConnection,
+    }
+  },
+
+  removeConnection: (id) =>
+    set((state) => ({
+      model: {
+        ...state.model,
+        connections: state.model.connections.filter(
+          (connection) => connection.id !== id,
+        ),
+      },
+      selectedConnectionId:
+        state.selectedConnectionId === id
+          ? null
+          : state.selectedConnectionId,
+    })),
+
+  /*
+   * Lookup helpers
+   */
+  getComponent: (id) =>
+    get().model.components.find(
+      (component) => component.id === id,
+    ),
+
+  getConnection: (id) =>
+    get().model.connections.find(
+      (connection) => connection.id === id,
+    ),
+
+  getConnectionsForComponent: (componentId) =>
+    get().model.connections.filter(
+      (connection) =>
+        connection.source === componentId ||
+        connection.target === componentId,
+    ),
+
+  getOutgoingConnections: (componentId) =>
+    get().model.connections.filter(
+      (connection) => connection.source === componentId,
+    ),
+
+  getIncomingConnections: (componentId) =>
+    get().model.connections.filter(
+      (connection) => connection.target === componentId,
+    ),
+
+  serializeModelForApi: () => {
+    const { model } = get()
+
+    return {
+      name: model.name,
+      description: model.description,
+      components: model.components.map((component) => ({
+        id: component.id,
+        category: component.category,
+        type: component.type,
+        name: component.name,
+        technology: component.technology,
+        description: component.description,
+        color: component.color,
+        icon: component.icon,
+        position: component.position,
+        metadata: component.metadata,
+      })),
+      connections: model.connections.map((connection) => ({
+        id: connection.id,
+        source: connection.source,
+        target: connection.target,
+        connection_type: connection.connectionType,
+        protocol: connection.protocol,
+        direction: connection.direction,
+        label: connection.label,
+        metadata: connection.metadata,
+      })),
+    }
+  },
+}))
