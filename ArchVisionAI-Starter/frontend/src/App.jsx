@@ -1,32 +1,56 @@
-import { Route, Routes } from 'react-router-dom'
+import {
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
+
+import AIAssistant from './components/AIAssistant'
+import ConnectionBuilderPanel from './components/ConnectionBuilderPanel'
+import ConnectionEditorPanel from './components/ConnectionEditorPanel'
+import SelectedNodePanel from './components/SelectedNodePanel'
+import Sidebar from './components/Sidebar'
 import ApplicationLayout from './layouts/ApplicationLayout'
 import Dashboard from './pages/Dashboard'
 import ArchitectureCanvas from './three/ArchitectureCanvas'
-import Sidebar from './components/Sidebar'
-import AIAssistant from './components/AIAssistant'
-import SelectedNodePanel from './components/SelectedNodePanel'
 
 function Workspace() {
   return (
-    <div className="flex h-full min-h-0">
-      <Sidebar />
+    <div className="h-full min-h-0 min-w-0 overflow-hidden bg-slate-950 p-3">
+      <div className="flex h-full min-h-0 min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl">
+        {/* Component and connection catalog */}
+        <div className="box-border min-h-0 w-72 shrink-0 overflow-hidden rounded-l-xl border-r border-slate-700 bg-slate-950">
+          <Sidebar />
+        </div>
 
-      <section className="relative min-w-0 flex-1">
-        <ArchitectureCanvas />
-        <SelectedNodePanel />
-      </section>
+        {/* Three-dimensional workspace */}
+        <section className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          <ArchitectureCanvas />
 
-      <AIAssistant />
+          <SelectedNodePanel />
+          <ConnectionBuilderPanel />
+          <ConnectionEditorPanel />
+        </section>
+
+        {/* AI assistant */}
+        <div className="box-border min-h-0 w-80 shrink-0 overflow-hidden rounded-r-xl border-l border-slate-700 bg-slate-950">
+          <AIAssistant />
+        </div>
+      </div>
     </div>
   )
 }
 
 function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+    <div className="flex h-full min-h-0 items-center justify-center bg-slate-950 p-6 text-white">
       <div className="text-center">
-        <h1 className="text-4xl font-bold">404</h1>
-        <p className="mt-2 text-slate-400">Page not found</p>
+        <h1 className="text-5xl font-bold">
+          404
+        </h1>
+
+        <p className="mt-3 text-slate-400">
+          Page not found
+        </p>
       </div>
     </div>
   )
@@ -36,12 +60,31 @@ export default function App() {
   return (
     <Routes>
       <Route element={<ApplicationLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/workspace" element={<Workspace />} />
-      </Route>
+        <Route
+          index
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
+        />
 
-      <Route path="*" element={<NotFound />} />
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
+
+        <Route
+          path="/workspace"
+          element={<Workspace />}
+        />
+
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
+      </Route>
     </Routes>
   )
 }
