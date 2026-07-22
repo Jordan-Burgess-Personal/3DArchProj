@@ -1,16 +1,15 @@
-import { Trash2, X } from 'lucide-react'
+import {
+  Link2,
+  Trash2,
+} from 'lucide-react'
 
-import { connectionCategories } from '../config/architectureCatalog'
+import {
+  connectionCategories,
+  findConnectionTemplate,
+} from '../config/architectureCatalog'
+
+import FloatingPanel from './FloatingPanel'
 import { useArchitectureStore } from '../store/architectureStore'
-
-const connectionTemplates =
-  connectionCategories.flatMap(
-    (category) =>
-      category.items.map((item) => ({
-        ...item,
-        categoryLabel: category.label,
-      })),
-  )
 
 export default function ConnectionEditorPanel() {
   const selectedConnectionId =
@@ -19,9 +18,11 @@ export default function ConnectionEditorPanel() {
         state.selectedConnectionId,
     )
 
-  const components = useArchitectureStore(
-    (state) => state.model.components,
-  )
+  const components =
+    useArchitectureStore(
+      (state) =>
+        state.model.components,
+    )
 
   const connections =
     useArchitectureStore(
@@ -47,70 +48,107 @@ export default function ConnectionEditorPanel() {
         state.clearConnectionSelection,
     )
 
-  const selected = connections.find(
-    (connection) =>
-      connection.id ===
-      selectedConnectionId,
-  )
+  const selected =
+    connections.find(
+      (connection) =>
+        connection.id ===
+        selectedConnectionId,
+    )
 
   if (!selected) {
     return null
   }
 
-  function updateField(field, value) {
-    updateConnection(selected.id, {
-      [field]: value,
-    })
+  function updateField(
+    field,
+    value,
+  ) {
+    updateConnection(
+      selected.id,
+      {
+        [field]: value,
+      },
+    )
   }
 
-  function changeTemplate(templateId) {
+  function changeTemplate(
+    templateId,
+  ) {
     const template =
-      connectionTemplates.find(
-        (item) =>
-          item.id === templateId,
+      findConnectionTemplate(
+        templateId,
       )
 
     if (!template) {
+      updateConnection(
+        selected.id,
+        {
+          templateId: '',
+        },
+      )
+
       return
     }
 
-    updateConnection(selected.id, {
-      templateId: template.id,
-      connectionType:
-        template.connectionType,
-      protocol: template.protocol || '',
-      label:
-        selected.label ||
-        template.name,
-    })
+    updateConnection(
+      selected.id,
+      {
+        templateId:
+          template.id,
+
+        connectionType:
+          template.connectionType,
+
+        protocol:
+          template.protocol ||
+          '',
+
+        label:
+          template.name,
+      },
+    )
   }
 
+  const footer = (
+    <button
+      type="button"
+      onClick={() =>
+        removeConnection(
+          selected.id,
+        )
+      }
+      className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium transition hover:bg-red-500"
+    >
+      <Trash2 size={16} />
+      Delete Connection
+    </button>
+  )
+
   return (
-    <div className="absolute bottom-5 right-5 z-30 w-[380px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 text-white shadow-2xl">
-      <header className="flex items-start justify-between border-b border-slate-800 p-4">
-        <div>
-          <h2 className="font-semibold">
-            Connection Details
-          </h2>
-
-          <p className="mt-1 text-xs text-slate-400">
-            Edit the relationship between components.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={
-            clearConnectionSelection
-          }
-          className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-          aria-label="Close connection editor"
-        >
-          <X size={18} />
-        </button>
-      </header>
-
-      <div className="max-h-[60vh] space-y-4 overflow-y-auto p-4">
+    <FloatingPanel
+      key={selected.id}
+      title="Connection Details"
+      subtitle="Edit the relationship between components."
+      icon={Link2}
+      initialPlacement="bottom-right"
+      initialOffset={{
+        x: 18,
+        y: 18,
+      }}
+      initialSize={{
+        width: 390,
+        height: 580,
+      }}
+      minimumSize={{
+        width: 330,
+        height: 330,
+      }}
+      onClose={
+        clearConnectionSelection
+      }
+      footer={footer}
+    >
+      <div className="space-y-4 p-4">
         <label className="block">
           <span className="text-xs font-medium text-slate-300">
             Connection Type
@@ -118,7 +156,8 @@ export default function ConnectionEditorPanel() {
 
           <select
             value={
-              selected.templateId || ''
+              selected.templateId ||
+              ''
             }
             onChange={(event) =>
               changeTemplate(
@@ -134,14 +173,22 @@ export default function ConnectionEditorPanel() {
             {connectionCategories.map(
               (category) => (
                 <optgroup
-                  key={category.id}
-                  label={category.label}
+                  key={
+                    category.id
+                  }
+                  label={
+                    category.label
+                  }
                 >
                   {category.items.map(
                     (item) => (
                       <option
-                        key={item.id}
-                        value={item.id}
+                        key={
+                          item.id
+                        }
+                        value={
+                          item.id
+                        }
                       >
                         {item.name}
                       </option>
@@ -159,7 +206,9 @@ export default function ConnectionEditorPanel() {
           </span>
 
           <select
-            value={selected.source}
+            value={
+              selected.source
+            }
             onChange={(event) =>
               updateField(
                 'source',
@@ -174,14 +223,22 @@ export default function ConnectionEditorPanel() {
                   component.id !==
                   selected.target,
               )
-              .map((component) => (
-                <option
-                  key={component.id}
-                  value={component.id}
-                >
-                  {component.name}
-                </option>
-              ))}
+              .map(
+                (component) => (
+                  <option
+                    key={
+                      component.id
+                    }
+                    value={
+                      component.id
+                    }
+                  >
+                    {
+                      component.name
+                    }
+                  </option>
+                ),
+              )}
           </select>
         </label>
 
@@ -191,7 +248,9 @@ export default function ConnectionEditorPanel() {
           </span>
 
           <select
-            value={selected.target}
+            value={
+              selected.target
+            }
             onChange={(event) =>
               updateField(
                 'target',
@@ -206,14 +265,22 @@ export default function ConnectionEditorPanel() {
                   component.id !==
                   selected.source,
               )
-              .map((component) => (
-                <option
-                  key={component.id}
-                  value={component.id}
-                >
-                  {component.name}
-                </option>
-              ))}
+              .map(
+                (component) => (
+                  <option
+                    key={
+                      component.id
+                    }
+                    value={
+                      component.id
+                    }
+                  >
+                    {
+                      component.name
+                    }
+                  </option>
+                ),
+              )}
           </select>
         </label>
 
@@ -223,7 +290,10 @@ export default function ConnectionEditorPanel() {
           </span>
 
           <input
-            value={selected.label || ''}
+            value={
+              selected.label ||
+              ''
+            }
             onChange={(event) =>
               updateField(
                 'label',
@@ -241,7 +311,8 @@ export default function ConnectionEditorPanel() {
 
           <input
             value={
-              selected.protocol || ''
+              selected.protocol ||
+              ''
             }
             onChange={(event) =>
               updateField(
@@ -281,10 +352,18 @@ export default function ConnectionEditorPanel() {
           </select>
         </label>
 
-        <div className="rounded-md bg-slate-900 p-3 text-xs text-slate-400">
+        <div className="rounded-md bg-slate-900 p-3 text-xs leading-5 text-slate-400">
           <p>
             Relationship:{' '}
-            {selected.connectionType}
+            {
+              selected.connectionType
+            }
+          </p>
+
+          <p>
+            Template:{' '}
+            {selected.templateId ||
+              'custom'}
           </p>
 
           <p className="mt-1 break-all">
@@ -292,21 +371,6 @@ export default function ConnectionEditorPanel() {
           </p>
         </div>
       </div>
-
-      <footer className="border-t border-slate-800 p-4">
-        <button
-          type="button"
-          onClick={() =>
-            removeConnection(
-              selected.id,
-            )
-          }
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium hover:bg-red-500"
-        >
-          <Trash2 size={16} />
-          Delete Connection
-        </button>
-      </footer>
-    </div>
+    </FloatingPanel>
   )
 }

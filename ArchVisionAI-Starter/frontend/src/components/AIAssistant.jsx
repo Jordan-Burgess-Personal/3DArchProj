@@ -19,7 +19,7 @@ export default function AIAssistant() {
   }
 
   return (
-    <aside className="w-96 bg-slate-950/90 border-l border-slate-800 p-4 space-y-4">
+    <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-950 p-4 text-white">
       <h2 className="text-xl font-bold text-indigo-300">AI Assistant</h2>
       <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full h-32 p-3 rounded-lg bg-slate-900 border border-slate-700" />
       <button onClick={generate} className="w-full p-3 rounded-lg bg-indigo-600">Generate Model</button>

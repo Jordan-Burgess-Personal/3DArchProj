@@ -657,7 +657,7 @@ function WorkspaceScene() {
 export default function ArchitectureCanvas() {
   return (
     <div
-      className="h-full w-full bg-slate-950"
+      className="h-full min-h-0 w-full min-w-0 overflow-hidden bg-slate-950"
       onContextMenu={(event) =>
         event.preventDefault()
       }

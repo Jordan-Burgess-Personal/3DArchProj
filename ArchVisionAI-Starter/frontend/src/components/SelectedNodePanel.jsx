@@ -1,15 +1,23 @@
-import { Trash2, X } from 'lucide-react'
+import {
+  Box,
+  Trash2,
+} from 'lucide-react'
 
+import FloatingPanel from './FloatingPanel'
 import { useArchitectureStore } from '../store/architectureStore'
 
 export default function SelectedNodePanel() {
-  const selectedId = useArchitectureStore(
-    (state) => state.selectedId,
-  )
+  const selectedId =
+    useArchitectureStore(
+      (state) =>
+        state.selectedId,
+    )
 
-  const components = useArchitectureStore(
-    (state) => state.model.components,
-  )
+  const components =
+    useArchitectureStore(
+      (state) =>
+        state.model.components,
+    )
 
   const updateComponent =
     useArchitectureStore(
@@ -29,61 +37,102 @@ export default function SelectedNodePanel() {
         state.clearSelection,
     )
 
-  const selected = components.find(
-    (component) =>
-      component.id === selectedId,
-  )
+  const selected =
+    components.find(
+      (component) =>
+        component.id ===
+        selectedId,
+    )
 
   if (!selected) {
     return null
   }
 
-  function updateField(field, value) {
-    updateComponent(selected.id, {
-      [field]: value,
-    })
+  function updateField(
+    field,
+    value,
+  ) {
+    updateComponent(
+      selected.id,
+      {
+        [field]: value,
+      },
+    )
   }
 
-  function updatePosition(axis, value) {
-    updateComponent(selected.id, {
-      position: {
-        ...selected.position,
-        [axis]: Number(value),
+  function updatePosition(
+    axis,
+    value,
+  ) {
+    const numericValue =
+      Number(value)
+
+    updateComponent(
+      selected.id,
+      {
+        position: {
+          ...selected.position,
+
+          [axis]:
+            Number.isFinite(
+              numericValue,
+            )
+              ? numericValue
+              : 0,
+        },
       },
-    })
+    )
   }
+
+  const deleteButton = (
+    <button
+      type="button"
+      onClick={() =>
+        removeComponent(
+          selected.id,
+        )
+      }
+      className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium transition hover:bg-red-500"
+    >
+      <Trash2 size={16} />
+      Delete Component
+    </button>
+  )
 
   return (
-    <div className="absolute bottom-5 left-5 z-30 w-[360px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 text-white shadow-2xl">
-      <header className="flex items-start justify-between border-b border-slate-800 p-4">
-        <div>
-          <h2 className="font-semibold">
-            Component Details
-          </h2>
-
-          <p className="mt-1 text-xs text-slate-400">
-            Changes update the canvas immediately.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={clearSelection}
-          className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-          aria-label="Close component editor"
-        >
-          <X size={18} />
-        </button>
-      </header>
-
-      <div className="max-h-[60vh] space-y-4 overflow-y-auto p-4">
+    <FloatingPanel
+      key={selected.id}
+      title="Component Details"
+      subtitle="Changes update the canvas immediately."
+      icon={Box}
+      initialPlacement="top-left"
+      initialOffset={{
+        x: 12,
+        y: 145,
+      }}
+      initialSize={{
+        width: 360,
+        height: 600,
+      }}
+      minimumSize={{
+        width: 310,
+        height: 320,
+      }}
+      onClose={
+        clearSelection
+      }
+      footer={deleteButton}
+    >
+      <div className="space-y-4 p-4">
         <label className="block">
           <span className="text-xs font-medium text-slate-300">
             Name
           </span>
 
           <input
-            value={selected.name}
+            value={
+              selected.name || ''
+            }
             onChange={(event) =>
               updateField(
                 'name',
@@ -101,7 +150,8 @@ export default function SelectedNodePanel() {
 
           <input
             value={
-              selected.technology || ''
+              selected.technology ||
+              ''
             }
             onChange={(event) =>
               updateField(
@@ -119,9 +169,10 @@ export default function SelectedNodePanel() {
           </span>
 
           <textarea
-            rows={3}
+            rows={4}
             value={
-              selected.description || ''
+              selected.description ||
+              ''
             }
             onChange={(event) =>
               updateField(
@@ -129,7 +180,7 @@ export default function SelectedNodePanel() {
                 event.target.value,
               )
             }
-            className="mt-1 w-full resize-none rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            className="mt-1 w-full resize-y rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-indigo-500"
           />
         </label>
 
@@ -151,7 +202,7 @@ export default function SelectedNodePanel() {
                   event.target.value,
                 )
               }
-              className="h-10 w-12 rounded border border-slate-700 bg-slate-900"
+              className="h-10 w-12 shrink-0 cursor-pointer rounded border border-slate-700 bg-slate-900"
             />
 
             <input
@@ -176,41 +227,53 @@ export default function SelectedNodePanel() {
           </h3>
 
           <div className="mt-2 grid grid-cols-3 gap-2">
-            {['x', 'y', 'z'].map(
-              (axis) => (
-                <label
-                  key={axis}
-                  className="block"
-                >
-                  <span className="text-xs uppercase text-slate-500">
-                    {axis}
-                  </span>
+            {[
+              'x',
+              'y',
+              'z',
+            ].map((axis) => (
+              <label
+                key={axis}
+                className="block min-w-0"
+              >
+                <span className="text-xs uppercase text-slate-500">
+                  {axis}
+                </span>
 
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={
-                      selected.position?.[
-                        axis
-                      ] ?? 0
-                    }
-                    onChange={(event) =>
-                      updatePosition(
-                        axis,
-                        event.target.value,
-                      )
-                    }
-                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-2 text-sm outline-none focus:border-indigo-500"
-                  />
-                </label>
-              ),
-            )}
+                <input
+                  type="number"
+                  step="0.5"
+                  value={
+                    selected.position?.[
+                      axis
+                    ] ?? 0
+                  }
+                  onChange={(
+                    event,
+                  ) =>
+                    updatePosition(
+                      axis,
+                      event.target
+                        .value,
+                    )
+                  }
+                  className="mt-1 w-full min-w-0 rounded-md border border-slate-700 bg-slate-900 px-2 py-2 text-sm outline-none focus:border-indigo-500"
+                />
+              </label>
+            ))}
           </div>
         </section>
 
-        <div className="rounded-md bg-slate-900 p-3 text-xs text-slate-400">
+        <div className="rounded-md bg-slate-900 p-3 text-xs leading-5 text-slate-400">
           <p>
-            Type: {selected.type}
+            Type:{' '}
+            {selected.type}
+          </p>
+
+          <p>
+            Category:{' '}
+            {selected.category ||
+              'custom'}
           </p>
 
           <p className="mt-1 break-all">
@@ -218,19 +281,6 @@ export default function SelectedNodePanel() {
           </p>
         </div>
       </div>
-
-      <footer className="border-t border-slate-800 p-4">
-        <button
-          type="button"
-          onClick={() =>
-            removeComponent(selected.id)
-          }
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium hover:bg-red-500"
-        >
-          <Trash2 size={16} />
-          Delete Component
-        </button>
-      </footer>
-    </div>
+    </FloatingPanel>
   )
 }

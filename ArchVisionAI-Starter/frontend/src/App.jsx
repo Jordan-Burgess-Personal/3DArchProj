@@ -1,72 +1,90 @@
-import { Download } from 'lucide-react'
+import {
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
 
-import Sidebar from './components/Sidebar'
 import AIAssistant from './components/AIAssistant'
-import SelectedNodePanel from './components/SelectedNodePanel'
 import ConnectionBuilderPanel from './components/ConnectionBuilderPanel'
 import ConnectionEditorPanel from './components/ConnectionEditorPanel'
+import SelectedNodePanel from './components/SelectedNodePanel'
+import Sidebar from './components/Sidebar'
+import ApplicationLayout from './layouts/ApplicationLayout'
+import Dashboard from './pages/Dashboard'
 import ArchitectureCanvas from './three/ArchitectureCanvas'
+
+function Workspace() {
+  return (
+    <div className="h-full min-h-0 min-w-0 overflow-hidden bg-slate-950 p-3">
+      <div className="flex h-full min-h-0 min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-2xl">
+        {/* Component and connection catalog */}
+        <div className="box-border min-h-0 w-72 shrink-0 overflow-hidden rounded-l-xl border-r border-slate-700 bg-slate-950">
+          <Sidebar />
+        </div>
+
+        {/* Three-dimensional workspace */}
+        <section className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          <ArchitectureCanvas />
+
+          <SelectedNodePanel />
+          <ConnectionBuilderPanel />
+          <ConnectionEditorPanel />
+        </section>
+
+        {/* AI assistant */}
+        <div className="box-border min-h-0 w-80 shrink-0 overflow-hidden rounded-r-xl border-l border-slate-700 bg-slate-950">
+          <AIAssistant />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NotFound() {
+  return (
+    <div className="flex h-full min-h-0 items-center justify-center bg-slate-950 p-6 text-white">
+      <div className="text-center">
+        <h1 className="text-5xl font-bold">
+          404
+        </h1>
+
+        <p className="mt-3 text-slate-400">
+          Page not found
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-950 text-white">
+    <Routes>
+      <Route element={<ApplicationLayout />}>
+        <Route
+          index
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
+        />
 
-      {/* Header */}
-      <header className="flex h-14 items-center justify-between border-b border-slate-800 bg-slate-950 px-6">
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-        <h1 className="text-2xl font-bold tracking-tight">
-          ArchVision <span className="text-indigo-400">AI</span>
-        </h1>
+        <Route
+          path="/workspace"
+          element={<Workspace />}
+        />
 
-        <button
-          className="
-            flex items-center gap-2
-            rounded-lg
-            bg-indigo-600
-            px-5
-            py-2
-            text-sm
-            font-medium
-            transition
-            hover:bg-indigo-500
-          "
-        >
-          <Download size={18} />
-          Export Project
-        </button>
-
-      </header>
-
-      {/* Main Workspace */}
-      <main className="flex flex-1 overflow-hidden">
-
-        {/* Left Sidebar */}
-        <aside className="w-64 border-r border-slate-800 bg-slate-950">
-          <Sidebar />
-        </aside>
-
-        {/* 3D Canvas */}
-        <section className="relative flex-1 overflow-hidden">
-
-          <ArchitectureCanvas />
-
-          {/* Floating Editors */}
-
-          <SelectedNodePanel />
-
-          <ConnectionBuilderPanel />
-
-          <ConnectionEditorPanel />
-
-        </section>
-
-        {/* Right AI Panel */}
-        <aside className="w-80 border-l border-slate-800 bg-slate-950">
-          <AIAssistant />
-        </aside>
-
-      </main>
-
-    </div>
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
+      </Route>
+    </Routes>
   )
 }
