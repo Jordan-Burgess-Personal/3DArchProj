@@ -402,7 +402,19 @@ export default function FloatingPanel({
   return (
     <section
       ref={panelRef}
-      onPointerDown={bringToFront}
+      onPointerDown={(event) => {
+        event.stopPropagation()
+        bringToFront()
+      }}
+      onClick={(event) => {
+        event.stopPropagation()
+      }}
+      onDoubleClick={(event) => {
+        event.stopPropagation()
+      }}
+      onContextMenu={(event) => {
+        event.stopPropagation()
+      }}
       className={[
         'absolute flex flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-950 text-white shadow-2xl',
         className,
