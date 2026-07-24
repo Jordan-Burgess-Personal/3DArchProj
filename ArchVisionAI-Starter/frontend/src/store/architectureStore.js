@@ -277,6 +277,7 @@ export const useArchitectureStore = create(
     projects: [],
     selectedProjectId: null,
     isProjectManagerOpen: false,
+    openedProjectId: null,
     isProjectsLoading: false,
     projectsError: null,
     projectsLastRefreshedAt: null,
@@ -328,6 +329,31 @@ export const useArchitectureStore = create(
         projectName:
           model?.name ||
           'Untitled Architecture',
+      }),
+
+    resetModel: () =>
+      set({
+        model: {
+          ...structuredClone(starterModel),
+          name: 'Untitled Architecture',
+        },
+
+        projectName: 'Untitled Architecture',
+
+        selectedId: null,
+        selectedConnectionId: null,
+
+        activeComponentTemplateId: null,
+        activeConnectionTemplateId: null,
+
+        connectionSourceId: null,
+        connectionTargetIds: [],
+
+        isConnectionBuilderOpen: false,
+        isDraggingComponent: false,
+
+        selectedProjectId: null,
+        openedProjectId: null,
       }),
 
     /*
@@ -405,6 +431,19 @@ export const useArchitectureStore = create(
     clearProjectSelection: () =>
       set({
         selectedProjectId: null,
+      }),
+
+    setOpenedProjectId: (projectId) =>
+      set({
+        openedProjectId:
+          projectId == null
+            ? null
+            : String(projectId),
+      }),
+
+    clearOpenedProjectId: () =>
+      set({
+        openedProjectId: null,
       }),
 
     refreshProjects: async () => {

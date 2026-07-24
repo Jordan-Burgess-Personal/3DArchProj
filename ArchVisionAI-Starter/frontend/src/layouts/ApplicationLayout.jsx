@@ -2,9 +2,14 @@ import { Download } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router-dom'
 
 import TopHoverNavigation from '../components/TopHoverNavigation'
+import { useArchitectureStore } from '../store/architectureStore'
 
 export default function ApplicationLayout() {
   const location = useLocation()
+
+  const openProjectManager = useArchitectureStore(
+    (state) => state.openProjectManager,
+  )
 
   const showExportButton =
     location.pathname === '/workspace'
@@ -24,6 +29,7 @@ export default function ApplicationLayout() {
         {showExportButton ? (
           <button
             type="button"
+            onClick={openProjectManager}
             className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium transition hover:bg-indigo-500"
           >
             <Download size={16} />
@@ -38,10 +44,6 @@ export default function ApplicationLayout() {
         )}
       </header>
 
-      {/*
-       * min-h-0 is essential. It allows this region and its children
-       * to shrink within the viewport instead of extending below it.
-       */}
       <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
         <Outlet />
       </main>

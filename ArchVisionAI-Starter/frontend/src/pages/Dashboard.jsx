@@ -1,13 +1,20 @@
 import { FolderOpen, Plus } from 'lucide-react'
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { useArchitectureStore } from '../store/architectureStore'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
+  
   const projects = useArchitectureStore(
     (state) => state.projects,
   )
+
+  const resetModel =
+    useArchitectureStore(
+      (state) => state.resetModel,
+    )
 
   const isProjectsLoading =
     useArchitectureStore(
@@ -38,6 +45,11 @@ export default function Dashboard() {
     refreshProjects()
   }, [refreshProjects])
 
+  function createNewArchitecture() {
+    resetModel()
+    navigate('/workspace')
+  }
+
   function openProject(projectId) {
     selectProject(projectId)
     openProjectManager()
@@ -63,13 +75,14 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <Link
-            to="/workspace"
+          <button
+            type="button"
+            onClick={createNewArchitecture}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500"
           >
             <Plus size={20} />
             New Architecture
-          </Link>
+          </button>
         </section>
 
         <section className="py-8">
@@ -124,13 +137,14 @@ export default function Dashboard() {
                 designing your system.
               </p>
 
-              <Link
-                to="/workspace"
+              <button
+                type="button"
+                onClick={createNewArchitecture}
                 className="mt-6 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500"
               >
                 <Plus size={18} />
                 Create Architecture
-              </Link>
+              </button>
 
             </div>
 
