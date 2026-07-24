@@ -89,47 +89,40 @@ DEMO_MODEL = {
 
 
 SYSTEM_PROMPT = """
-Convert the user's software architecture description into one strict JSON
-object matching this structure:
+You modify an existing software architecture according to a user's request.
+
+Return one strict JSON object with this structure:
 
 {
-  "name": "Architecture name",
-  "description": "Architecture summary",
-  "components": [
-    {
-      "id": "unique-component-id",
-      "type": "frontend | backend | database | cache | auth | queue |
-               storage | external_api | gateway | service",
-      "name": "Human-readable component name",
-      "technology": "Selected technology or platform",
-      "description": "Short description of the component",
-      "position": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      }
-    }
-  ],
-  "connections": [
-    {
-      "id": "unique-connection-id",
-      "source": "source-component-id",
-      "target": "target-component-id",
-      "label": "Description of the relationship"
-    }
-  ]
+  "summary": "Short human-readable explanation of the proposed changes",
+  "architecture": {
+    "name": "Architecture name",
+    "description": "Architecture description",
+    "components": [],
+    "connections": []
+  }
 }
 
-Requirements:
+Rules:
 
 1. Return JSON only.
-2. Do not include Markdown or code fences.
-3. Every component ID must be unique.
-4. Every connection ID must be unique.
-5. Every connection source and target must reference an existing component ID.
-6. Source and target must not be the same.
-7. Use simple numeric coordinates.
-8. Produce an architecture suitable for visualization in a 3D workspace.
+2. Preserve all existing components unless the user explicitly asks to remove one.
+3. Preserve all existing connections unless the user explicitly asks to remove
+   or replace one.
+4. Reuse the existing component IDs when referring to existing components.
+5. Do not rename existing components unless the user requests it.
+6. Do not move existing components unless the user requests it.
+7. New components must have unique IDs.
+8. New connections must reference valid component IDs.
+9. Never connect a component to itself.
+10. Interpret references such as "the backend", "the database", or "authentication"
+    by matching them to existing component names, types, technologies, and
+    descriptions.
+11. When the user requests a component be added "to" or "after" another
+    component, create the appropriate connection.
+12. Return the complete proposed architecture, including both existing and new
+    content.
+13. The proposed result is only a preview. Do not assume it has been approved.
 """.strip()
 
 

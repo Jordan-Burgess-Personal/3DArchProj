@@ -69,18 +69,31 @@ class GenerateRequest(BaseModel):
         min_length=1,
         max_length=5000,
     )
+    current_model: ArchitectureModel
 
 
-class GenerateResponse(ArchitectureModel):
-    """
-    Validated architecture returned by the AI generation endpoint.
+class ArchitectureChanges(BaseModel):
+    added_component_ids: List[str] = Field(
+        default_factory=list,
+    )
+    updated_component_ids: List[str] = Field(
+        default_factory=list,
+    )
+    removed_component_ids: List[str] = Field(
+        default_factory=list,
+    )
+    added_connection_ids: List[str] = Field(
+        default_factory=list,
+    )
+    removed_connection_ids: List[str] = Field(
+        default_factory=list,
+    )
 
-    The response uses the same structure as ArchitectureModel so the
-    frontend can immediately load the generated components and
-    connections into the existing Architecture Builder.
-    """
 
-    pass
+class GenerateResponse(BaseModel):
+    summary: str
+    architecture: ArchitectureModel
+    changes: ArchitectureChanges
 
 
 class FeedbackRequest(BaseModel):
