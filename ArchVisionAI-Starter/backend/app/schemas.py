@@ -9,15 +9,23 @@ from pydantic import BaseModel, ConfigDict, Field
 
 ComponentType = Literal[
     "frontend",
+    "mobile",
     "backend",
+    "worker",
     "database",
     "cache",
     "storage",
     "auth",
+    "authorization",
     "external_api",
     "message_queue",
     "load_balancer",
+    "gateway",
     "service",
+    "ai_service",
+    "cloud",
+    "container",
+    "custom",
 ]
 
 
@@ -28,18 +36,20 @@ class Position(BaseModel):
 
 
 class Component(BaseModel):
-    id: str
+    id: str = Field(min_length=1)
     type: ComponentType
-    name: str
+    name: str = Field(min_length=1)
     technology: Optional[str] = None
     description: Optional[str] = None
-    position: Position = Field(default_factory=Position)
+    position: Position = Field(
+        default_factory=Position,
+    )
 
 
 class Connection(BaseModel):
-    id: str
-    source: str
-    target: str
+    id: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    target: str = Field(min_length=1)
     label: Optional[str] = None
 
 
@@ -55,15 +65,40 @@ class ArchitectureModel(BaseModel):
 
 
 class GenerateRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(
+        min_length=1,
+        max_length=5000,
+    )
+
+
+class GenerateResponse(ArchitectureModel):
+    """
+    Validated architecture returned by the AI generation endpoint.
+
+    The response uses the same structure as ArchitectureModel so the
+    frontend can immediately load the generated components and
+    connections into the existing Architecture Builder.
+    """
+
+    pass
 
 
 class FeedbackRequest(BaseModel):
     model: ArchitectureModel
 
 
+class FeedbackResponse(BaseModel):
+    """
+    Suggestions returned by the architecture feedback endpoint.
+    """
+
+    suggestions: List[str] = Field(
+        default_factory=list,
+    )
+
+
 class ProjectCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1)
     model: ArchitectureModel
 
 
