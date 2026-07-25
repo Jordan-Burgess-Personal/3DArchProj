@@ -4,11 +4,7 @@ import json
 import logging
 from typing import Any
 
-from fastapi import (
-    APIRouter,
-    HTTPException,
-    status,
-)
+from fastapi import APIRouter, HTTPException, status
 from pydantic import ValidationError
 
 from app.ai.architecture_assistant import (
@@ -28,40 +24,44 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _prepare_generated_architecture(
+def _prepare_generated_proposal(
     result: Any,
 ) -> GenerateResponse:
     """
-    Convert the architecture service result into a
-    validated GenerateResponse.
+    Convert the architecture service result into a validated proposal.
 
-    generate_architecture currently returns a dictionary,
-    but string handling is retained for compatibility with
-    earlier service implementations.
+    String handling is retained for compatibility with mocked and earlier
+    service implementations.
     """
 
-    architecture_data = result
+    proposal_data = result
 
-    if isinstance(result, str):
+    if isinstance(result, GenerateResponse):
+        return result
+
+    if hasattr(result, "model_dump"):
+        proposal_data = result.model_dump()
+
+    if isinstance(proposal_data, str):
         try:
-            architecture_data = json.loads(result)
+            proposal_data = json.loads(proposal_data)
         except json.JSONDecodeError as error:
             raise ValueError(
                 "The AI service returned invalid JSON."
             ) from error
 
-    if not isinstance(architecture_data, dict):
+    if not isinstance(proposal_data, dict):
         raise ValueError(
-            "The generated architecture must be a JSON object."
+            "The generated proposal must be a JSON object."
         )
 
     try:
         return GenerateResponse.model_validate(
-            architecture_data,
+            proposal_data,
         )
     except ValidationError as error:
         raise ValueError(
-            "The generated architecture did not match "
+            "The generated proposal did not match "
             "the required application schema."
         ) from error
 
@@ -75,28 +75,29 @@ def generate(
     request: GenerateRequest,
 ) -> GenerateResponse:
     """
-    Generate an editable software architecture from a
-    natural-language prompt.
+    Generate a reviewable proposal that modifies the current architecture.
+
+    The route never persists or applies the proposal. The frontend must require
+    the user to approve the returned architecture before updating the canvas.
     """
 
     try:
         result = generate_architecture(
             request.prompt,
+            request.current_model,
         )
 
-        return _prepare_generated_architecture(
+        return _prepare_generated_proposal(
             result,
         )
     except ValueError as error:
         logger.warning(
-            "AI architecture generation validation failed: %s",
+            "AI architecture proposal validation failed: %s",
             error,
         )
 
         raise HTTPException(
-            status_code=(
-                status.HTTP_422_UNPROCESSABLE_ENTITY
-            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(error),
         ) from error
     except Exception as error:
@@ -107,7 +108,7 @@ def generate(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=(
-                "The architecture could not be generated. "
+                "The architecture proposal could not be generated. "
                 "Please revise the prompt and try again."
             ),
         ) from error
@@ -121,10 +122,7 @@ def generate(
 def feedback(
     request: FeedbackRequest,
 ) -> FeedbackResponse:
-    """
-    Review an architecture and return improvement
-    suggestions.
-    """
+    """Review an architecture and return improvement suggestions."""
 
     try:
         suggestions = review_architecture(
@@ -141,9 +139,7 @@ def feedback(
         )
 
         raise HTTPException(
-            status_code=(
-                status.HTTP_422_UNPROCESSABLE_ENTITY
-            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(error),
         ) from error
     except Exception as error:
@@ -152,11 +148,8 @@ def feedback(
         )
 
         raise HTTPException(
-            status_code=(
-                status.HTTP_500_INTERNAL_SERVER_ERROR
-            ),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                "Architecture feedback is temporarily "
-                "unavailable."
+                "Architecture feedback is temporarily unavailable."
             ),
         ) from error

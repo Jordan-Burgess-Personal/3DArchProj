@@ -3,14 +3,6 @@ import { api } from './client'
 const GENERATE_ENDPOINT = '/api/ai/generate'
 const FEEDBACK_ENDPOINT = '/api/ai/feedback'
 
-/**
- * Return a useful error message for failed AI requests.
- *
- * Axios errors may contain:
- * - a backend validation message in response.data.detail
- * - a timeout code
- * - no response when the backend cannot be reached
- */
 export function getAIErrorMessage(
   error,
   fallbackMessage = 'The AI request could not be completed.',
@@ -46,51 +38,122 @@ export function getAIErrorMessage(
   return fallbackMessage
 }
 
-/**
- * Ensure the AI service returned an architecture structure
- * that can be passed to the existing Zustand setModel action.
- */
-function validateGeneratedArchitecture(architecture) {
+function validateArchitecture(architecture) {
   if (
     !architecture ||
     typeof architecture !== 'object' ||
     Array.isArray(architecture)
   ) {
     throw new Error(
-      'The AI service returned an invalid architecture response.',
+      'The AI service returned an invalid architecture.',
     )
   }
 
   if (!Array.isArray(architecture.components)) {
     throw new Error(
-      'The generated architecture did not contain a components array.',
+      'The proposal did not contain a components array.',
     )
   }
 
   if (!Array.isArray(architecture.connections)) {
     throw new Error(
-      'The generated architecture did not contain a connections array.',
-    )
-  }
-
-  if (architecture.components.length === 0) {
-    throw new Error(
-      'The AI service did not generate any architecture components.',
+      'The proposal did not contain a connections array.',
     )
   }
 
   return architecture
 }
 
-/**
- * Generate an architecture from a natural-language prompt.
- */
-export async function generateArchitecture(prompt) {
-  const cleanedPrompt = String(prompt || '').trim()
+function validateChanges(changes) {
+  const normalized = changes || {}
+
+  return {
+    addedComponentIds: Array.isArray(
+      normalized.added_component_ids,
+    )
+      ? normalized.added_component_ids
+      : [],
+
+    updatedComponentIds: Array.isArray(
+      normalized.updated_component_ids,
+    )
+      ? normalized.updated_component_ids
+      : [],
+
+    removedComponentIds: Array.isArray(
+      normalized.removed_component_ids,
+    )
+      ? normalized.removed_component_ids
+      : [],
+
+    addedConnectionIds: Array.isArray(
+      normalized.added_connection_ids,
+    )
+      ? normalized.added_connection_ids
+      : [],
+
+    removedConnectionIds: Array.isArray(
+      normalized.removed_connection_ids,
+    )
+      ? normalized.removed_connection_ids
+      : [],
+  }
+}
+
+function validateGeneratedProposal(proposal) {
+  if (
+    !proposal ||
+    typeof proposal !== 'object' ||
+    Array.isArray(proposal)
+  ) {
+    throw new Error(
+      'The AI service returned an invalid proposal response.',
+    )
+  }
+
+  const summary = String(
+    proposal.summary || '',
+  ).trim()
+
+  if (!summary) {
+    throw new Error(
+      'The generated proposal did not include a summary.',
+    )
+  }
+
+  return {
+    summary,
+
+    architecture: validateArchitecture(
+      proposal.architecture,
+    ),
+
+    changes: validateChanges(
+      proposal.changes,
+    ),
+  }
+}
+
+export async function generateArchitecture(
+  prompt,
+  currentModel,
+) {
+  const cleanedPrompt = String(
+    prompt || '',
+  ).trim()
 
   if (!cleanedPrompt) {
     throw new Error(
-      'Enter a description of the software system you want to generate.',
+      'Enter a description of the architecture change you want.',
+    )
+  }
+
+  if (
+    !currentModel ||
+    typeof currentModel !== 'object'
+  ) {
+    throw new Error(
+      'The current architecture is unavailable.',
     )
   }
 
@@ -98,25 +161,21 @@ export async function generateArchitecture(prompt) {
     GENERATE_ENDPOINT,
     {
       prompt: cleanedPrompt,
+      current_model: currentModel,
     },
     {
-      /*
-       * AI requests may take longer than ordinary REST requests,
-       * especially when the OpenAI API is being used.
-       */
       timeout: 60000,
     },
   )
 
-  return validateGeneratedArchitecture(
+  return validateGeneratedProposal(
     response.data,
   )
 }
 
-/**
- * Request improvement suggestions for the current architecture.
- */
-export async function getArchitectureFeedback(model) {
+export async function getArchitectureFeedback(
+  model,
+) {
   if (!model || typeof model !== 'object') {
     throw new Error(
       'There is no valid architecture available for review.',
@@ -130,7 +189,8 @@ export async function getArchitectureFeedback(model) {
     },
   )
 
-  const suggestions = response.data?.suggestions
+  const suggestions =
+    response.data?.suggestions
 
   if (!Array.isArray(suggestions)) {
     throw new Error(

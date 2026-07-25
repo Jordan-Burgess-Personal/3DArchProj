@@ -31,7 +31,7 @@ ComponentType = Literal[
 
 class Position(BaseModel):
     x: float = 0
-    y: float = 0
+    y: float = 0.5
     z: float = 0
 
 
@@ -41,9 +41,7 @@ class Component(BaseModel):
     name: str = Field(min_length=1)
     technology: Optional[str] = None
     description: Optional[str] = None
-    position: Position = Field(
-        default_factory=Position,
-    )
+    position: Position = Field(default_factory=Position)
 
 
 class Connection(BaseModel):
@@ -56,42 +54,25 @@ class Connection(BaseModel):
 class ArchitectureModel(BaseModel):
     name: str = "Untitled Architecture"
     description: Optional[str] = None
-    components: List[Component] = Field(
-        default_factory=list,
-    )
-    connections: List[Connection] = Field(
-        default_factory=list,
-    )
+    components: List[Component] = Field(default_factory=list)
+    connections: List[Connection] = Field(default_factory=list)
 
 
 class GenerateRequest(BaseModel):
-    prompt: str = Field(
-        min_length=1,
-        max_length=5000,
-    )
+    prompt: str = Field(min_length=1, max_length=5000)
     current_model: ArchitectureModel
 
 
 class ArchitectureChanges(BaseModel):
-    added_component_ids: List[str] = Field(
-        default_factory=list,
-    )
-    updated_component_ids: List[str] = Field(
-        default_factory=list,
-    )
-    removed_component_ids: List[str] = Field(
-        default_factory=list,
-    )
-    added_connection_ids: List[str] = Field(
-        default_factory=list,
-    )
-    removed_connection_ids: List[str] = Field(
-        default_factory=list,
-    )
+    added_component_ids: List[str] = Field(default_factory=list)
+    updated_component_ids: List[str] = Field(default_factory=list)
+    removed_component_ids: List[str] = Field(default_factory=list)
+    added_connection_ids: List[str] = Field(default_factory=list)
+    removed_connection_ids: List[str] = Field(default_factory=list)
 
 
 class GenerateResponse(BaseModel):
-    summary: str
+    summary: str = Field(min_length=1)
     architecture: ArchitectureModel
     changes: ArchitectureChanges
 
@@ -101,13 +82,9 @@ class FeedbackRequest(BaseModel):
 
 
 class FeedbackResponse(BaseModel):
-    """
-    Suggestions returned by the architecture feedback endpoint.
-    """
+    """Suggestions returned by the architecture feedback endpoint."""
 
-    suggestions: List[str] = Field(
-        default_factory=list,
-    )
+    suggestions: List[str] = Field(default_factory=list)
 
 
 class ProjectCreate(BaseModel):
@@ -117,8 +94,7 @@ class ProjectCreate(BaseModel):
 
 class ProjectSummary(BaseModel):
     """
-    Lightweight project information used by project-management
-    interfaces.
+    Lightweight project information used by project-management interfaces.
 
     This schema intentionally excludes the complete architecture model.
     Loading the complete project will be implemented by the dedicated

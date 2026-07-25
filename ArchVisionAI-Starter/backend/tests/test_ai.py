@@ -2,69 +2,133 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.routes import ai
+from app.schemas import (
+    ArchitectureChanges,
+    ArchitectureModel,
+    GenerateResponse,
+)
 
 
 client = TestClient(app)
 
 
-GENERATED_ARCHITECTURE = {
-    "name": "Generated Test Architecture",
-    "description": (
-        "Architecture generated during API testing."
-    ),
+CURRENT_ARCHITECTURE = {
+    "name": "Existing Architecture",
+    "description": "Architecture already on the canvas.",
     "components": [
-        {
-            "id": "frontend",
-            "type": "frontend",
-            "name": "React Frontend",
-            "technology": "React",
-            "description": "User interface.",
-            "position": {
-                "x": -3,
-                "y": 0,
-                "z": 0,
-            },
-        },
         {
             "id": "backend",
             "type": "backend",
             "name": "FastAPI Backend",
             "technology": "FastAPI",
-            "description": "Application API.",
+            "description": "Existing application API.",
+            "position": {
+                "x": 8,
+                "y": 0.5,
+                "z": 4,
+            },
+        },
+    ],
+    "connections": [],
+}
+
+
+PROPOSED_ARCHITECTURE = {
+    "name": "Existing Architecture",
+    "description": "Architecture already on the canvas.",
+    "components": [
+        CURRENT_ARCHITECTURE["components"][0],
+        {
+            "id": "security-layer",
+            "type": "auth",
+            "name": "Security Layer",
+            "technology": "OAuth2",
+            "description": "Authenticates requests.",
             "position": {
                 "x": 0,
-                "y": 0,
+                "y": 0.5,
+                "z": 0,
+            },
+        },
+        {
+            "id": "database",
+            "type": "database",
+            "name": "Application Database",
+            "technology": "PostgreSQL",
+            "description": "Stores application data.",
+            "position": {
+                "x": 4,
+                "y": 0.5,
                 "z": 0,
             },
         },
     ],
     "connections": [
         {
-            "id": "frontend-backend",
-            "source": "frontend",
-            "target": "backend",
-            "label": "REST API",
+            "id": "backend-security",
+            "source": "backend",
+            "target": "security-layer",
+            "label": "Authenticates requests",
+        },
+        {
+            "id": "security-database",
+            "source": "security-layer",
+            "target": "database",
+            "label": "Accesses protected data",
         },
     ],
 }
 
 
-def test_generate_architecture(
+def build_proposal() -> GenerateResponse:
+    return GenerateResponse(
+        summary=(
+            "Add a security layer and database to the existing backend."
+        ),
+        architecture=ArchitectureModel.model_validate(
+            PROPOSED_ARCHITECTURE
+        ),
+        changes=ArchitectureChanges(
+            added_component_ids=[
+                "security-layer",
+                "database",
+            ],
+            added_connection_ids=[
+                "backend-security",
+                "security-database",
+            ],
+        ),
+    )
+
+
+def test_generate_architecture_proposal(
     monkeypatch,
 ) -> None:
+    def fake_generate(
+        prompt: str,
+        current_model: ArchitectureModel,
+    ) -> GenerateResponse:
+        assert "security" in prompt.lower()
+        assert (
+            current_model.components[0].id
+            == "backend"
+        )
+        return build_proposal()
+
     monkeypatch.setattr(
         ai,
         "generate_architecture",
-        lambda prompt: GENERATED_ARCHITECTURE,
+        fake_generate,
     )
 
     response = client.post(
         "/api/ai/generate",
         json={
             "prompt": (
-                "Create a React frontend and "
-                "FastAPI backend."
+                "Add a security layer and database "
+                "to the backend."
             ),
+            "current_model": CURRENT_ARCHITECTURE,
         },
     )
 
@@ -72,23 +136,23 @@ def test_generate_architecture(
 
     body = response.json()
 
-    assert (
-        body["name"]
-        == "Generated Test Architecture"
+    assert body["summary"].startswith(
+        "Add a security layer"
     )
-
-    assert len(body["components"]) == 2
-    assert len(body["connections"]) == 1
-
     assert (
-        body["connections"][0]["source"]
-        == "frontend"
-    )
-
-    assert (
-        body["connections"][0]["target"]
+        body["architecture"]["components"][0]["id"]
         == "backend"
     )
+    assert len(
+        body["architecture"]["components"]
+    ) == 3
+    assert len(
+        body["architecture"]["connections"]
+    ) == 2
+    assert body["changes"]["added_component_ids"] == [
+        "security-layer",
+        "database",
+    ]
 
 
 def test_generate_rejects_empty_prompt() -> None:
@@ -96,6 +160,18 @@ def test_generate_rejects_empty_prompt() -> None:
         "/api/ai/generate",
         json={
             "prompt": "",
+            "current_model": CURRENT_ARCHITECTURE,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_generate_requires_current_model() -> None:
+    response = client.post(
+        "/api/ai/generate",
+        json={
+            "prompt": "Add a database.",
         },
     )
 
@@ -107,9 +183,10 @@ def test_generate_handles_validation_failure(
 ) -> None:
     def raise_validation_error(
         prompt: str,
-    ) -> dict:
+        current_model: ArchitectureModel,
+    ) -> GenerateResponse:
         raise ValueError(
-            "The generated architecture did not "
+            "The generated proposal did not "
             "match the required schema."
         )
 
@@ -123,15 +200,15 @@ def test_generate_handles_validation_failure(
         "/api/ai/generate",
         json={
             "prompt": (
-                "Create a software architecture."
+                "Add a database to the backend."
             ),
+            "current_model": CURRENT_ARCHITECTURE,
         },
     )
 
     assert response.status_code == 422
-
     assert response.json()["detail"] == (
-        "The generated architecture did not "
+        "The generated proposal did not "
         "match the required schema."
     )
 
@@ -141,7 +218,8 @@ def test_generate_handles_service_failure(
 ) -> None:
     def raise_service_error(
         prompt: str,
-    ) -> dict:
+        current_model: ArchitectureModel,
+    ) -> GenerateResponse:
         raise RuntimeError(
             "OpenAI service unavailable."
         )
@@ -156,15 +234,15 @@ def test_generate_handles_service_failure(
         "/api/ai/generate",
         json={
             "prompt": (
-                "Create a software architecture."
+                "Add a database to the backend."
             ),
+            "current_model": CURRENT_ARCHITECTURE,
         },
     )
 
     assert response.status_code == 502
-
     assert response.json()["detail"] == (
-        "The architecture could not be generated. "
+        "The architecture proposal could not be generated. "
         "Please revise the prompt and try again."
     )
 
@@ -173,7 +251,7 @@ def test_architecture_feedback() -> None:
     response = client.post(
         "/api/ai/feedback",
         json={
-            "model": GENERATED_ARCHITECTURE,
+            "model": CURRENT_ARCHITECTURE,
         },
     )
 
@@ -185,5 +263,4 @@ def test_architecture_feedback() -> None:
         body["suggestions"],
         list,
     )
-
     assert len(body["suggestions"]) > 0

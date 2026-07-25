@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   Grid,
   Line,
@@ -334,6 +334,8 @@ function WorkspaceScene() {
     setDraggedComponentId,
   ] = useState(null)
 
+  const didDragComponentRef = useRef(false)
+
   const [
     hoverPosition,
     setHoverPosition,
@@ -397,6 +399,7 @@ function WorkspaceScene() {
       return
     }
 
+    didDragComponentRef.current = false
     setDraggedComponentId(componentId)
     setDraggingComponent(true)
     select(componentId)
@@ -412,6 +415,8 @@ function WorkspaceScene() {
     )
 
     if (draggedComponentId) {
+      didDragComponentRef.current = true
+
       const component =
         model.components.find(
           (item) =>
@@ -450,6 +455,11 @@ function WorkspaceScene() {
         canvasPosition(event.point),
       )
 
+      return
+    }
+
+    if (didDragComponentRef.current) {
+      didDragComponentRef.current = false
       return
     }
 

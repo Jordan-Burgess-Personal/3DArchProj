@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import {
   generateArchitecture,
@@ -8,40 +8,89 @@ import {
 import { useArchitectureStore } from '../store/architectureStore'
 
 const DEFAULT_PROMPT =
-  'Create a React frontend, FastAPI backend, ' +
-  'PostgreSQL database, and OpenAI integration'
+  'Add a database and security layer to the existing backend.'
+
+function ProposalList({
+  title,
+  ids,
+  nameById,
+}) {
+  if (!ids.length) {
+    return null
+  }
+
+  return (
+    <div>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {title}
+      </h4>
+
+      <ul className="mt-1 space-y-1 text-sm text-slate-200">
+        {ids.map((id) => (
+          <li key={id}>
+            • {nameById.get(id) || id}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 export default function AIAssistant() {
   const [prompt, setPrompt] = useState(
     DEFAULT_PROMPT,
   )
-
   const [suggestions, setSuggestions] =
     useState([])
-
   const [isGenerating, setIsGenerating] =
     useState(false)
-
   const [
     isRequestingFeedback,
     setIsRequestingFeedback,
   ] = useState(false)
-
   const [errorMessage, setErrorMessage] =
     useState('')
-
   const [successMessage, setSuccessMessage] =
     useState('')
+  const [pendingProposal, setPendingProposal] =
+    useState(null)
 
   const model = useArchitectureStore(
     (state) => state.model,
   )
 
-  const setModel = useArchitectureStore(
-    (state) => state.setModel,
-  )
+  const applyArchitectureProposal =
+    useArchitectureStore(
+      (state) =>
+        state.applyArchitectureProposal,
+    )
 
   const cleanedPrompt = prompt.trim()
+
+  const proposalComponentNames = useMemo(() => {
+    const entries =
+      pendingProposal?.architecture?.components?.map(
+        (component) => [
+          component.id,
+          component.name || component.id,
+        ],
+      ) || []
+
+    return new Map(entries)
+  }, [pendingProposal])
+
+  const proposalConnectionNames = useMemo(() => {
+    const entries =
+      pendingProposal?.architecture?.connections?.map(
+        (connection) => [
+          connection.id,
+          connection.label ||
+            `${connection.source} → ${connection.target}`,
+        ],
+      ) || []
+
+    return new Map(entries)
+  }, [pendingProposal])
 
   async function handleGenerate(event) {
     event.preventDefault()
@@ -52,11 +101,9 @@ export default function AIAssistant() {
 
     if (!cleanedPrompt) {
       setErrorMessage(
-        'Describe the software system you want to generate.',
+        'Describe the architecture change you want to propose.',
       )
-
       setSuccessMessage('')
-
       return
     }
 
@@ -64,36 +111,18 @@ export default function AIAssistant() {
     setErrorMessage('')
     setSuccessMessage('')
     setSuggestions([])
+    setPendingProposal(null)
 
     try {
-      const generatedArchitecture =
+      const proposal =
         await generateArchitecture(
           cleanedPrompt,
+          model,
         )
 
-      /*
-       * setModel places the generated components and
-       * connections into the existing Architecture Builder
-       * state. The 3D canvas then rerenders from that state.
-       */
-      setModel(generatedArchitecture)
-
-      const componentCount =
-        generatedArchitecture.components.length
-
-      const connectionCount =
-        generatedArchitecture.connections.length
-
+      setPendingProposal(proposal)
       setSuccessMessage(
-        `Generated ${componentCount} ${
-          componentCount === 1
-            ? 'component'
-            : 'components'
-        } and ${connectionCount} ${
-          connectionCount === 1
-            ? 'connection'
-            : 'connections'
-        }.`,
+        'A proposed change is ready for review. The canvas has not been modified.',
       )
     } catch (error) {
       const message =
@@ -102,13 +131,46 @@ export default function AIAssistant() {
           ? error.message
           : getAIErrorMessage(
               error,
-              'The architecture could not be generated.',
+              'The architecture proposal could not be generated.',
             )
 
       setErrorMessage(message)
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  function handleApproveProposal() {
+    if (!pendingProposal) {
+      return
+    }
+
+    const result =
+      applyArchitectureProposal(
+        pendingProposal.architecture,
+      )
+
+    if (result?.success === false) {
+      setErrorMessage(
+        result.error ||
+          'The proposal could not be applied.',
+      )
+      return
+    }
+
+    setPendingProposal(null)
+    setErrorMessage('')
+    setSuccessMessage(
+      'The approved architecture changes were applied.',
+    )
+  }
+
+  function handleRejectProposal() {
+    setPendingProposal(null)
+    setErrorMessage('')
+    setSuccessMessage(
+      'The proposed changes were discarded. The current architecture was left unchanged.',
+    )
   }
 
   async function handleFeedback() {
@@ -120,7 +182,6 @@ export default function AIAssistant() {
       setErrorMessage(
         'Add or generate at least one component before requesting feedback.',
       )
-
       return
     }
 
@@ -163,6 +224,15 @@ export default function AIAssistant() {
     }
   }
 
+  const changes =
+    pendingProposal?.changes || {
+      addedComponentIds: [],
+      updatedComponentIds: [],
+      removedComponentIds: [],
+      addedConnectionIds: [],
+      removedConnectionIds: [],
+    }
+
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-950 text-white">
       <header className="shrink-0 border-b border-slate-800 p-4">
@@ -171,8 +241,8 @@ export default function AIAssistant() {
         </h2>
 
         <p className="mt-2 text-sm leading-5 text-slate-400">
-          Describe a software system to generate an
-          editable starting architecture.
+          Describe additions or edits to the current
+          architecture. Proposed changes require approval.
         </p>
       </header>
 
@@ -186,7 +256,7 @@ export default function AIAssistant() {
               htmlFor="architecture-prompt"
               className="mb-2 block text-sm font-medium text-slate-200"
             >
-              Architecture prompt
+              Architecture change
             </label>
 
             <textarea
@@ -197,11 +267,9 @@ export default function AIAssistant() {
               maxLength={5000}
               rows={7}
               placeholder={[
-                'Example: Create an e-commerce ',
-                'platform with a React frontend, ',
-                'FastAPI backend, authentication ',
-                'service, PostgreSQL database, ',
-                'Redis cache, and payment API.',
+                'Example: Add a security layer ',
+                'between the existing backend ',
+                'and a new PostgreSQL database.',
               ].join('')}
               className={[
                 'w-full resize-none rounded-lg',
@@ -220,8 +288,8 @@ export default function AIAssistant() {
 
             <div className="mt-1 flex items-start justify-between gap-3 text-xs text-slate-500">
               <span>
-                Include the components, technologies,
-                and communication requirements.
+                Existing work and positions are preserved
+                unless removal or movement is requested.
               </span>
 
               <span className="shrink-0">
@@ -248,8 +316,8 @@ export default function AIAssistant() {
             ].join(' ')}
           >
             {isGenerating
-              ? 'Generating Architecture...'
-              : 'Generate Model'}
+              ? 'Generating Proposal...'
+              : 'Generate Proposal'}
           </button>
         </form>
 
@@ -282,11 +350,88 @@ export default function AIAssistant() {
               'text-emerald-200',
             ].join(' ')}
           >
-            <strong className="font-semibold">
-              Architecture generated.
-            </strong>{' '}
             {successMessage}
           </div>
+        )}
+
+        {pendingProposal && (
+          <section className="space-y-3 rounded-lg border border-indigo-400/40 bg-indigo-500/10 p-3">
+            <div>
+              <h3 className="text-sm font-semibold text-indigo-200">
+                Proposed architecture changes
+              </h3>
+
+              <p className="mt-1 text-sm leading-5 text-slate-200">
+                {pendingProposal.summary}
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-md bg-slate-950/60 p-3">
+              <ProposalList
+                title="Components to add"
+                ids={changes.addedComponentIds}
+                nameById={proposalComponentNames}
+              />
+
+              <ProposalList
+                title="Components to update"
+                ids={changes.updatedComponentIds}
+                nameById={proposalComponentNames}
+              />
+
+              <ProposalList
+                title="Components to remove"
+                ids={changes.removedComponentIds}
+                nameById={proposalComponentNames}
+              />
+
+              <ProposalList
+                title="Connections to add"
+                ids={changes.addedConnectionIds}
+                nameById={proposalConnectionNames}
+              />
+
+              <ProposalList
+                title="Connections to remove"
+                ids={changes.removedConnectionIds}
+                nameById={proposalConnectionNames}
+              />
+
+              {!changes.addedComponentIds.length &&
+                !changes.updatedComponentIds.length &&
+                !changes.removedComponentIds.length &&
+                !changes.addedConnectionIds.length &&
+                !changes.removedConnectionIds.length && (
+                  <p className="text-sm text-slate-400">
+                    The proposal does not contain a material
+                    change to the current architecture.
+                  </p>
+                )}
+            </div>
+
+            <p className="text-xs leading-5 text-amber-200">
+              Review the proposal before applying it. Rejecting
+              it leaves the canvas unchanged.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleRejectProposal}
+                className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800"
+              >
+                Reject
+              </button>
+
+              <button
+                type="button"
+                onClick={handleApproveProposal}
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+              >
+                Approve Changes
+              </button>
+            </div>
+          </section>
         )}
 
         <div className="border-t border-slate-800 pt-4">
