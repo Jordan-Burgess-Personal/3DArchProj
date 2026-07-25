@@ -154,12 +154,8 @@ class ArchitectureModel(BaseModel):
         min_length=1,
     )
     description: Optional[str] = None
-    components: List[Component] = Field(
-        default_factory=list,
-    )
-    connections: List[Connection] = Field(
-        default_factory=list,
-    )
+    components: List[Component] = Field(default_factory=list)
+    connections: List[Connection] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -182,10 +178,7 @@ class ArchitectureModel(BaseModel):
 
 
 class GenerateRequest(BaseModel):
-    prompt: str = Field(
-        min_length=1,
-        max_length=5000,
-    )
+    prompt: str = Field(min_length=1, max_length=5000)
     current_model: ArchitectureModel
 
     @field_validator("prompt")
@@ -195,21 +188,11 @@ class GenerateRequest(BaseModel):
 
 
 class ArchitectureChanges(BaseModel):
-    added_component_ids: List[str] = Field(
-        default_factory=list,
-    )
-    updated_component_ids: List[str] = Field(
-        default_factory=list,
-    )
-    removed_component_ids: List[str] = Field(
-        default_factory=list,
-    )
-    added_connection_ids: List[str] = Field(
-        default_factory=list,
-    )
-    removed_connection_ids: List[str] = Field(
-        default_factory=list,
-    )
+    added_component_ids: List[str] = Field(default_factory=list)
+    updated_component_ids: List[str] = Field(default_factory=list)
+    removed_component_ids: List[str] = Field(default_factory=list)
+    added_connection_ids: List[str] = Field(default_factory=list)
+    removed_connection_ids: List[str] = Field(default_factory=list)
 
 
 class GenerateResponse(BaseModel):
@@ -230,9 +213,7 @@ class FeedbackRequest(BaseModel):
 class FeedbackResponse(BaseModel):
     """Suggestions returned by the architecture feedback endpoint."""
 
-    suggestions: List[str] = Field(
-        default_factory=list,
-    )
+    suggestions: List[str] = Field(default_factory=list)
 
 
 class ProjectCreate(BaseModel):
@@ -249,8 +230,7 @@ class ProjectRename(BaseModel):
 
 class ProjectSummary(BaseModel):
     """
-    Lightweight project information used by project-management
-    interfaces.
+    Lightweight project information used by project-management interfaces.
 
     This schema intentionally excludes the complete architecture model.
     """
