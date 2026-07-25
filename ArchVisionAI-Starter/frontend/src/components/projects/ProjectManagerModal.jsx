@@ -1,5 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 
+import { useNavigate } from 'react-router-dom'
+import { api } from '../../api/client'
 import { useArchitectureStore } from '../../store/architectureStore'
 
 function formatDate(value) {
@@ -243,6 +249,30 @@ function ProjectDetails({ project }) {
 }
 
 export default function ProjectManagerModal() {
+  const navigate = useNavigate()
+  
+  const [isSaving, setIsSaving] =
+    useState(false)
+
+  const [isOpening, setIsOpening] =
+    useState(false)
+
+  const [isDeleting, setIsDeleting] =
+    useState(false)
+
+  const [saveMessage, setSaveMessage] =
+    useState('')
+
+  const openedProjectId =
+    useArchitectureStore(
+      (state) => state.openedProjectId,
+    )
+
+  const setOpenedProjectId =
+    useArchitectureStore(
+      (state) => state.setOpenedProjectId,
+    )
+
   const isProjectManagerOpen =
     useArchitectureStore(
       (state) => state.isProjectManagerOpen,
@@ -273,6 +303,16 @@ export default function ProjectManagerModal() {
         state.projectsLastRefreshedAt,
     )
 
+  const projectName =
+    useArchitectureStore(
+      (state) => state.projectName,
+    )
+  
+  const setProjectName =
+    useArchitectureStore(
+      (state) => state.setProjectName,
+    )
+
   const closeProjectManager =
     useArchitectureStore(
       (state) => state.closeProjectManager,
@@ -286,6 +326,17 @@ export default function ProjectManagerModal() {
   const refreshProjects =
     useArchitectureStore(
       (state) => state.refreshProjects,
+    )
+
+  const serializeModelForApi =
+    useArchitectureStore(
+      (state) =>
+        state.serializeModelForApi,
+    )
+
+  const setModel =
+    useArchitectureStore(
+      (state) => state.setModel,
     )
 
   const selectedProject = useMemo(
@@ -333,6 +384,194 @@ export default function ProjectManagerModal() {
       closeProjectManager()
     }
   }
+
+  function getErrorMessage(
+    error,
+    fallbackMessage,
+  ) {
+    const responseDetail =
+      error?.response?.data?.detail
+
+    if (typeof responseDetail === 'string') {
+      return responseDetail
+    }
+
+    if (Array.isArray(responseDetail)) {
+      return responseDetail
+        .map(
+          (item) =>
+            item?.msg || String(item),
+        )
+        .join(' ')
+    }
+
+    if (!error?.response) {
+      return 'Unable to connect to the project service. Confirm that the backend is running.'
+    }
+
+    return fallbackMessage
+  }
+
+  async function handleSaveProject() {
+    setIsSaving(true)
+    setSaveMessage('')
+
+    try {
+      const model = serializeModelForApi()
+
+      const projectData = {
+        name:
+          projectName?.trim() ||
+          model.name?.trim() ||
+          'Untitled Project',
+        model,
+      }
+
+      let response
+
+      if (openedProjectId) {
+        response = await api.put(
+          `/api/projects/${openedProjectId}`,
+          projectData,
+        )
+
+        setSaveMessage(
+          'Project changes saved successfully.',
+        )
+      } else {
+        response = await api.post(
+          '/api/projects',
+          projectData,
+        )
+
+        const createdProjectId =
+          response?.data?.id
+
+        if (createdProjectId) {
+          setOpenedProjectId(
+            String(createdProjectId),
+          )
+        }
+
+        setSaveMessage(
+          'Project saved successfully.',
+        )
+      }
+
+      await refreshProjects()
+    } catch (error) {
+      setSaveMessage(
+        getErrorMessage(
+          error,
+          'Unable to save the project.',
+        ),
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleOpenProject() {
+
+    if (!selectedProjectId) {
+      setSaveMessage(
+        'Select a project before opening it.',
+      )
+      return
+    }
+
+    setIsOpening(true)
+    setSaveMessage('Opening project...')
+
+    try {
+      const response = await api.get(
+        `/api/projects/${selectedProjectId}`,
+      )
+
+      const projectData = response?.data
+      const model = projectData?.model
+
+      if (!model) {
+        throw new Error(
+          'The project response did not include an architecture model.',
+        )
+      }
+
+      setModel(model)
+      setOpenedProjectId(
+        String(selectedProjectId),
+      )
+
+      setSaveMessage(
+        'Project opened successfully.',
+      )
+
+      closeProjectManager()
+      navigate('/workspace')
+
+    } catch (error) {
+      setSaveMessage(
+        getErrorMessage(
+          error,
+          'Unable to open the selected project.',
+        ),
+      )
+    } finally {
+      setIsOpening(false)
+    }
+  }
+
+async function handleDeleteProject() {
+  if (!selectedProjectId) {
+    setSaveMessage(
+      'Select a project before deleting it.',
+    )
+    return
+  }
+
+  const confirmed = window.confirm(
+    `Are you sure you want to delete "${
+      selectedProject?.name ||
+      'Untitled Project'
+    }"? This action cannot be undone.`,
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  setIsDeleting(true)
+  setSaveMessage('Deleting project...')
+
+  try {
+    await api.delete(
+      `/api/projects/${selectedProjectId}`,
+    )
+
+    if (
+      String(openedProjectId) ===
+      String(selectedProjectId)
+    ) {
+      setOpenedProjectId(null)
+    }
+
+    selectProject(null)
+    await refreshProjects()
+
+    setSaveMessage(
+      'Project deleted successfully.',
+    )
+  } catch (error) {
+    setSaveMessage(
+      getErrorMessage(
+        error,
+        'Unable to delete the selected project.',
+      ),
+    )
+  } finally {
+    setIsDeleting(false)
+  }
+}
 
   return (
     <div
@@ -425,6 +664,37 @@ export default function ProjectManagerModal() {
           </div>
         )}
 
+        <div className="border-b border-slate-800 px-6 py-4">
+          <label
+            htmlFor="project-name"
+            className="block text-sm font-semibold text-white"
+          >
+            Current Project Name
+          </label>
+
+          <input
+            id="project-name"
+            type="text"
+            value={projectName}
+            onChange={(event) =>
+              setProjectName(event.target.value)
+            }
+            placeholder="Enter a project name"
+            maxLength={100}
+            disabled={isSaving || isOpening || isDeleting}
+            className={[
+              'mt-2 w-full rounded-lg',
+              'border border-slate-700',
+              'bg-slate-900 px-4 py-2',
+              'text-white outline-none',
+              'placeholder:text-slate-500',
+              'focus:border-indigo-500',
+              'disabled:cursor-not-allowed',
+              'disabled:opacity-50',
+            ].join(' ')}
+          />
+        </div>
+
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 overflow-y-auto p-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
           <div className="min-h-0">
             <div className="mb-3 flex items-center justify-between">
@@ -472,23 +742,114 @@ export default function ProjectManagerModal() {
         </div>
 
         <footer className="flex items-center justify-between gap-3 border-t border-slate-800 px-6 py-4">
-          <p className="text-xs text-slate-500">
-            Select a project to view its summary.
-          </p>
-
-          <button
-            type="button"
-            onClick={closeProjectManager}
+          <p
             className={[
-              'rounded-lg border border-slate-600',
-              'px-4 py-2 text-sm font-semibold',
-              'text-slate-200 transition',
-              'hover:border-slate-400',
-              'hover:bg-slate-800',
+              'text-xs',
+              saveMessage.includes(
+                'successfully',
+              )
+                ? 'text-emerald-300'
+                : saveMessage
+                  ? 'text-red-300'
+                  : 'text-slate-500',
             ].join(' ')}
           >
-            Close
-          </button>
+            {saveMessage ||
+              'Select a project to view its summary.'}
+          </p>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleOpenProject}
+              disabled={
+                !selectedProjectId ||
+                isOpening ||
+                isSaving ||
+                isDeleting
+              }
+              className={[
+                'rounded-lg border border-cyan-500',
+                'px-4 py-2 text-sm font-semibold',
+                'text-cyan-200 transition',
+                'hover:bg-cyan-500/10',
+                'disabled:cursor-not-allowed',
+                'disabled:opacity-50',
+              ].join(' ')}
+            >
+              {isOpening
+                ? 'Opening...'
+                : 'Open Project'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteProject}
+              disabled={
+                !selectedProjectId ||
+                isDeleting ||
+                isOpening ||
+                isSaving
+              }
+              className={[
+                'rounded-lg border border-red-500',
+                'px-4 py-2 text-sm font-semibold',
+                'text-red-200 transition',
+                'hover:bg-red-500/10',
+                'disabled:cursor-not-allowed',
+                'disabled:opacity-50',
+              ].join(' ')}
+            >
+              {isDeleting
+                ? 'Deleting...'
+                : 'Delete Project'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveProject}
+              disabled={
+                isSaving ||
+                isOpening ||
+                isDeleting
+              }
+              className={[
+                'rounded-lg bg-indigo-600',
+                'px-4 py-2 text-sm font-semibold',
+                'text-white transition',
+                'hover:bg-indigo-500',
+                'disabled:cursor-not-allowed',
+                'disabled:opacity-50',
+              ].join(' ')}
+            >
+              {isSaving
+                ? 'Saving...'
+                : openedProjectId
+                ? 'Save Changes'
+                : 'Save Project'}
+            </button>
+
+            <button
+              type="button"
+              onClick={closeProjectManager}
+              disabled={
+                isSaving ||
+                isOpening ||
+                isDeleting
+              }
+              className={[
+                'rounded-lg border border-slate-600',
+                'px-4 py-2 text-sm font-semibold',
+                'text-slate-200 transition',
+                'hover:border-slate-400',
+                'hover:bg-slate-800',
+                'disabled:cursor-not-allowed',
+                'disabled:opacity-50',
+              ].join(' ')}
+            >
+              Close
+            </button>
+          </div>
         </footer>
       </section>
     </div>

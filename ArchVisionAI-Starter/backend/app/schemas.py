@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -34,24 +34,35 @@ class Component(BaseModel):
     technology: Optional[str] = None
     description: Optional[str] = None
     position: Position = Field(default_factory=Position)
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
 
 
 class Connection(BaseModel):
     id: str
     source: str
     target: str
+    connection_type: str = "data-flow"
+    protocol: Optional[str] = None
+    direction: str = "unidirectional"
     label: Optional[str] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
 
 
 class ArchitectureModel(BaseModel):
     name: str = "Untitled Architecture"
     description: Optional[str] = None
+
     components: List[Component] = Field(
         default_factory=list,
     )
     connections: List[Connection] = Field(
         default_factory=list,
     )
+
 
 
 class GenerateRequest(BaseModel):
@@ -63,8 +74,16 @@ class FeedbackRequest(BaseModel):
 
 
 class ProjectCreate(BaseModel):
-    name: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=150)
     model: ArchitectureModel
+
+
+class ProjectRename(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=150)
 
 
 class ProjectSummary(BaseModel):
@@ -73,11 +92,7 @@ class ProjectSummary(BaseModel):
     interfaces.
 
     This schema intentionally excludes the complete architecture model.
-    Loading the complete project will be implemented by the dedicated
-    project-loading story.
     """
-
-    model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     name: str
@@ -88,3 +103,7 @@ class ProjectSummary(BaseModel):
     connection_count: int = 0
     created_at: datetime
     updated_at: datetime
+
+
+class ProjectDetail(ProjectSummary):
+    model: ArchitectureModel
