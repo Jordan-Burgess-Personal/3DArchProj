@@ -3,8 +3,11 @@ import { useMemo, useState } from 'react'
 import {
   generateArchitecture,
   getAIErrorMessage,
-  getArchitectureFeedback,
+  getAIValidationErrors,
 } from '../api/ai'
+import {
+  validateArchitecture,
+} from '../utils/validateArchitecture'
 import { useArchitectureStore } from '../store/architectureStore'
 
 const DEFAULT_PROMPT =
@@ -54,6 +57,10 @@ export default function AIAssistant() {
     useState('')
   const [pendingProposal, setPendingProposal] =
     useState(null)
+  const [
+    proposalValidationErrors,
+    setProposalValidationErrors,
+  ] = useState([])
 
   const model = useArchitectureStore(
     (state) => state.model,
@@ -112,6 +119,7 @@ export default function AIAssistant() {
     setSuccessMessage('')
     setSuggestions([])
     setPendingProposal(null)
+    setProposalValidationErrors([])
 
     try {
       const proposal =
@@ -120,7 +128,23 @@ export default function AIAssistant() {
           model,
         )
 
+      const validation =
+        validateArchitecture(
+          proposal.architecture,
+        )
+
+      if (!validation.valid) {
+        setProposalValidationErrors(
+          validation.errors,
+        )
+        setErrorMessage(
+          'The generated architecture could not be reviewed because it failed validation.',
+        )
+        return
+      }
+
       setPendingProposal(proposal)
+      setProposalValidationErrors([])
       setSuccessMessage(
         'A proposed change is ready for review. The canvas has not been modified.',
       )
@@ -134,6 +158,9 @@ export default function AIAssistant() {
               'The architecture proposal could not be generated.',
             )
 
+      setProposalValidationErrors(
+        getAIValidationErrors(error),
+      )
       setErrorMessage(message)
     } finally {
       setIsGenerating(false)
@@ -145,12 +172,30 @@ export default function AIAssistant() {
       return
     }
 
+    const validation =
+      validateArchitecture(
+        pendingProposal.architecture,
+      )
+
+    if (!validation.valid) {
+      setProposalValidationErrors(
+        validation.errors,
+      )
+      setErrorMessage(
+        'The generated architecture could not be applied because it failed validation.',
+      )
+      return
+    }
+
     const result =
       applyArchitectureProposal(
         pendingProposal.architecture,
       )
 
     if (result?.success === false) {
+      setProposalValidationErrors(
+        result.errors || [],
+      )
       setErrorMessage(
         result.error ||
           'The proposal could not be applied.',
@@ -159,6 +204,7 @@ export default function AIAssistant() {
     }
 
     setPendingProposal(null)
+    setProposalValidationErrors([])
     setErrorMessage('')
     setSuccessMessage(
       'The approved architecture changes were applied.',
@@ -167,6 +213,7 @@ export default function AIAssistant() {
 
   function handleRejectProposal() {
     setPendingProposal(null)
+    setProposalValidationErrors([])
     setErrorMessage('')
     setSuccessMessage(
       'The proposed changes were discarded. The current architecture was left unchanged.',
@@ -339,6 +386,35 @@ export default function AIAssistant() {
           </div>
         )}
 
+        {proposalValidationErrors.length > 0 && (
+          <div
+            role="alert"
+            className={[
+              'rounded-lg border',
+              'border-red-400/30',
+              'bg-red-400/10 p-3',
+              'text-sm leading-5',
+              'text-red-200',
+            ].join(' ')}
+          >
+            <strong className="font-semibold">
+              Architecture validation errors
+            </strong>
+
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {proposalValidationErrors.map(
+                (validationError, index) => (
+                  <li
+                    key={`${index}-${validationError}`}
+                  >
+                    {validationError}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        )}
+
         {successMessage && (
           <div
             role="status"
@@ -426,7 +502,10 @@ export default function AIAssistant() {
               <button
                 type="button"
                 onClick={handleApproveProposal}
-                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+                disabled={
+                  proposalValidationErrors.length > 0
+                }
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-900 disabled:text-emerald-300"
               >
                 Approve Changes
               </button>

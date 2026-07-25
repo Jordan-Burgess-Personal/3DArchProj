@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 
 import { getProjectSummaries } from '../api/projects'
+import {
+  validateArchitecture,
+} from '../utils/validateArchitecture'
 
 import {
   findComponentTemplate,

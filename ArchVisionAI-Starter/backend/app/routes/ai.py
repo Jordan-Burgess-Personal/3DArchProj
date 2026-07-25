@@ -17,6 +17,10 @@ from app.schemas import (
     GenerateRequest,
     GenerateResponse,
 )
+from app.validation.architecture_validator import (
+    ArchitectureValidationError,
+    validate_architecture_or_raise,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -36,9 +40,6 @@ def _prepare_generated_proposal(
 
     proposal_data = result
 
-    if isinstance(result, GenerateResponse):
-        return result
-
     if hasattr(result, "model_dump"):
         proposal_data = result.model_dump()
 
@@ -56,14 +57,28 @@ def _prepare_generated_proposal(
         )
 
     try:
-        return GenerateResponse.model_validate(
+        proposal = GenerateResponse.model_validate(
             proposal_data,
         )
     except ValidationError as error:
-        raise ValueError(
-            "The generated proposal did not match "
-            "the required application schema."
+        messages = [
+            validation_error.get("msg", "Invalid value.")
+            for validation_error in error.errors()
+        ]
+
+        raise ArchitectureValidationError(
+            messages
+            or [
+                "The generated proposal did not match "
+                "the required application schema."
+            ]
         ) from error
+
+    validate_architecture_or_raise(
+        proposal.architecture,
+    )
+
+    return proposal
 
 
 @router.post(
@@ -90,6 +105,19 @@ def generate(
         return _prepare_generated_proposal(
             result,
         )
+    except ArchitectureValidationError as error:
+        logger.warning(
+            "AI architecture proposal validation failed: %s",
+            error.errors,
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": str(error),
+                "errors": error.errors,
+            },
+        ) from error
     except ValueError as error:
         logger.warning(
             "AI architecture proposal validation failed: %s",
@@ -125,6 +153,10 @@ def feedback(
     """Review an architecture and return improvement suggestions."""
 
     try:
+        validate_architecture_or_raise(
+            request.model,
+        )
+
         suggestions = review_architecture(
             request.model,
         )
@@ -132,6 +164,14 @@ def feedback(
         return FeedbackResponse(
             suggestions=suggestions,
         )
+    except ArchitectureValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "message": str(error),
+                "errors": error.errors,
+            },
+        ) from error
     except ValueError as error:
         logger.warning(
             "Architecture feedback validation failed: %s",

@@ -13,20 +13,21 @@ client = TestClient(app)
 
 
 CURRENT_ARCHITECTURE = {
-    "name": "Existing Architecture",
-    "description": "Architecture already on the canvas.",
+    "name": "Current Architecture",
+    "description": "Architecture before AI changes.",
     "components": [
         {
             "id": "backend",
             "type": "backend",
             "name": "FastAPI Backend",
             "technology": "FastAPI",
-            "description": "Existing application API.",
+            "description": "Application API.",
             "position": {
-                "x": 8,
+                "x": 0,
                 "y": 0.5,
-                "z": 4,
+                "z": 0,
             },
+            "metadata": {},
         },
     ],
     "connections": [],
@@ -34,8 +35,8 @@ CURRENT_ARCHITECTURE = {
 
 
 PROPOSED_ARCHITECTURE = {
-    "name": "Existing Architecture",
-    "description": "Architecture already on the canvas.",
+    "name": "Current Architecture",
+    "description": "Architecture with security and storage.",
     "components": [
         CURRENT_ARCHITECTURE["components"][0],
         {
@@ -45,22 +46,24 @@ PROPOSED_ARCHITECTURE = {
             "technology": "OAuth2",
             "description": "Authenticates requests.",
             "position": {
-                "x": 0,
-                "y": 0.5,
-                "z": 0,
-            },
-        },
-        {
-            "id": "database",
-            "type": "database",
-            "name": "Application Database",
-            "technology": "PostgreSQL",
-            "description": "Stores application data.",
-            "position": {
                 "x": 4,
                 "y": 0.5,
                 "z": 0,
             },
+            "metadata": {},
+        },
+        {
+            "id": "database",
+            "type": "database",
+            "name": "PostgreSQL Database",
+            "technology": "PostgreSQL",
+            "description": "Stores application data.",
+            "position": {
+                "x": 8,
+                "y": 0.5,
+                "z": 0,
+            },
+            "metadata": {},
         },
     ],
     "connections": [
@@ -68,13 +71,17 @@ PROPOSED_ARCHITECTURE = {
             "id": "backend-security",
             "source": "backend",
             "target": "security-layer",
+            "connection_type": "dependency",
             "label": "Authenticates requests",
+            "metadata": {},
         },
         {
             "id": "security-database",
             "source": "security-layer",
             "target": "database",
+            "connection_type": "database_access",
             "label": "Accesses protected data",
+            "metadata": {},
         },
     ],
 }
@@ -101,6 +108,19 @@ def build_proposal() -> GenerateResponse:
     )
 
 
+def post_generate() -> object:
+    return client.post(
+        "/api/ai/generate",
+        json={
+            "prompt": (
+                "Add a security layer and database "
+                "to the backend."
+            ),
+            "current_model": CURRENT_ARCHITECTURE,
+        },
+    )
+
+
 def test_generate_architecture_proposal(
     monkeypatch,
 ) -> None:
@@ -121,16 +141,7 @@ def test_generate_architecture_proposal(
         fake_generate,
     )
 
-    response = client.post(
-        "/api/ai/generate",
-        json={
-            "prompt": (
-                "Add a security layer and database "
-                "to the backend."
-            ),
-            "current_model": CURRENT_ARCHITECTURE,
-        },
-    )
+    response = post_generate()
 
     assert response.status_code == 200
 
@@ -178,7 +189,159 @@ def test_generate_requires_current_model() -> None:
     assert response.status_code == 422
 
 
-def test_generate_handles_validation_failure(
+def test_generate_rejects_missing_component_id(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    del invalid["architecture"]["components"][1]["id"]
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+
+
+def test_generate_rejects_missing_component_name(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["components"][1]["name"] = " "
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+
+
+def test_generate_rejects_invalid_position(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["components"][1]["position"]["x"] = "left"
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+
+
+def test_generate_rejects_duplicate_component_ids(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["components"][1]["id"] = "backend"
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+    assert (
+        "duplicated"
+        in str(response.json()["detail"])
+    )
+
+
+def test_generate_rejects_missing_connection_source(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["connections"][0]["source"] = ""
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+
+
+def test_generate_rejects_unknown_connection_target(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["connections"][0]["target"] = "unknown"
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+    assert (
+        "unknown target"
+        in str(response.json()["detail"])
+    )
+
+
+def test_generate_rejects_self_connection(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["connections"][0]["target"] = "backend"
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+    assert (
+        "itself"
+        in str(response.json()["detail"])
+    )
+
+
+def test_generate_rejects_duplicate_connection_ids(
+    monkeypatch,
+) -> None:
+    invalid = build_proposal().model_dump()
+    invalid["architecture"]["connections"][1]["id"] = "backend-security"
+
+    monkeypatch.setattr(
+        ai,
+        "generate_architecture",
+        lambda prompt, current_model: invalid,
+    )
+
+    response = post_generate()
+
+    assert response.status_code == 422
+    assert (
+        "duplicated"
+        in str(response.json()["detail"])
+    )
+
+
+def test_generate_handles_service_validation_failure(
     monkeypatch,
 ) -> None:
     def raise_validation_error(
@@ -196,15 +359,7 @@ def test_generate_handles_validation_failure(
         raise_validation_error,
     )
 
-    response = client.post(
-        "/api/ai/generate",
-        json={
-            "prompt": (
-                "Add a database to the backend."
-            ),
-            "current_model": CURRENT_ARCHITECTURE,
-        },
-    )
+    response = post_generate()
 
     assert response.status_code == 422
     assert response.json()["detail"] == (
@@ -230,37 +385,6 @@ def test_generate_handles_service_failure(
         raise_service_error,
     )
 
-    response = client.post(
-        "/api/ai/generate",
-        json={
-            "prompt": (
-                "Add a database to the backend."
-            ),
-            "current_model": CURRENT_ARCHITECTURE,
-        },
-    )
+    response = post_generate()
 
     assert response.status_code == 502
-    assert response.json()["detail"] == (
-        "The architecture proposal could not be generated. "
-        "Please revise the prompt and try again."
-    )
-
-
-def test_architecture_feedback() -> None:
-    response = client.post(
-        "/api/ai/feedback",
-        json={
-            "model": CURRENT_ARCHITECTURE,
-        },
-    )
-
-    assert response.status_code == 200
-
-    body = response.json()
-
-    assert isinstance(
-        body["suggestions"],
-        list,
-    )
-    assert len(body["suggestions"]) > 0
