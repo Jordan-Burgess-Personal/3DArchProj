@@ -1,11 +1,41 @@
 import { api } from './client'
+import {
+  assertValidArchitecture,
+} from '../utils/validateArchitecture'
 
 const GENERATE_ENDPOINT = '/api/ai/generate'
 const FEEDBACK_ENDPOINT = '/api/ai/feedback'
 
+export function getAIValidationErrors(error) {
+  if (
+    Array.isArray(
+      error?.validationErrors,
+    )
+  ) {
+    return error.validationErrors
+  }
+
+  const detail =
+    error?.response?.data?.detail
+
+  if (
+    detail &&
+    typeof detail === 'object' &&
+    Array.isArray(detail.errors)
+  ) {
+    return detail.errors.filter(
+      (message) =>
+        typeof message === 'string',
+    )
+  }
+
+  return []
+}
+
 export function getAIErrorMessage(
   error,
-  fallbackMessage = 'The AI request could not be completed.',
+  fallbackMessage =
+    'The AI request could not be completed.',
 ) {
   if (error?.code === 'ECONNABORTED') {
     return (
@@ -15,53 +45,51 @@ export function getAIErrorMessage(
   }
 
   if (!error?.response) {
+    if (
+      error instanceof Error &&
+      error.message
+    ) {
+      return error.message
+    }
+
     return (
       'Unable to connect to the AI service. ' +
       'Confirm that the FastAPI backend is running.'
     )
   }
 
-  const detail = error.response.data?.detail
+  const detail =
+    error.response.data?.detail
 
-  if (typeof detail === 'string' && detail.trim()) {
+  if (
+    detail &&
+    typeof detail === 'object' &&
+    typeof detail.message === 'string'
+  ) {
+    return detail.message
+  }
+
+  if (
+    typeof detail === 'string' &&
+    detail.trim()
+  ) {
     return detail
   }
 
-  if (Array.isArray(detail) && detail.length > 0) {
+  if (
+    Array.isArray(detail) &&
+    detail.length > 0
+  ) {
     const firstError = detail[0]
 
-    if (typeof firstError?.msg === 'string') {
+    if (
+      typeof firstError?.msg === 'string'
+    ) {
       return firstError.msg
     }
   }
 
   return fallbackMessage
-}
-
-function validateArchitecture(architecture) {
-  if (
-    !architecture ||
-    typeof architecture !== 'object' ||
-    Array.isArray(architecture)
-  ) {
-    throw new Error(
-      'The AI service returned an invalid architecture.',
-    )
-  }
-
-  if (!Array.isArray(architecture.components)) {
-    throw new Error(
-      'The proposal did not contain a components array.',
-    )
-  }
-
-  if (!Array.isArray(architecture.connections)) {
-    throw new Error(
-      'The proposal did not contain a connections array.',
-    )
-  }
-
-  return architecture
 }
 
 function validateChanges(changes) {
@@ -73,25 +101,21 @@ function validateChanges(changes) {
     )
       ? normalized.added_component_ids
       : [],
-
     updatedComponentIds: Array.isArray(
       normalized.updated_component_ids,
     )
       ? normalized.updated_component_ids
       : [],
-
     removedComponentIds: Array.isArray(
       normalized.removed_component_ids,
     )
       ? normalized.removed_component_ids
       : [],
-
     addedConnectionIds: Array.isArray(
       normalized.added_connection_ids,
     )
       ? normalized.added_connection_ids
       : [],
-
     removedConnectionIds: Array.isArray(
       normalized.removed_connection_ids,
     )
@@ -121,13 +145,15 @@ function validateGeneratedProposal(proposal) {
     )
   }
 
+  const architecture =
+    assertValidArchitecture(
+      proposal.architecture,
+      'The generated architecture failed validation.',
+    )
+
   return {
     summary,
-
-    architecture: validateArchitecture(
-      proposal.architecture,
-    ),
-
+    architecture,
     changes: validateChanges(
       proposal.changes,
     ),
@@ -148,14 +174,10 @@ export async function generateArchitecture(
     )
   }
 
-  if (
-    !currentModel ||
-    typeof currentModel !== 'object'
-  ) {
-    throw new Error(
-      'The current architecture is unavailable.',
-    )
-  }
+  assertValidArchitecture(
+    currentModel,
+    'The current architecture is invalid and cannot be sent for AI generation.',
+  )
 
   const response = await api.post(
     GENERATE_ENDPOINT,
@@ -176,11 +198,10 @@ export async function generateArchitecture(
 export async function getArchitectureFeedback(
   model,
 ) {
-  if (!model || typeof model !== 'object') {
-    throw new Error(
-      'There is no valid architecture available for review.',
-    )
-  }
+  assertValidArchitecture(
+    model,
+    'The current architecture is invalid and cannot be reviewed.',
+  )
 
   const response = await api.post(
     FEEDBACK_ENDPOINT,
