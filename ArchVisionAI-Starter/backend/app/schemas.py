@@ -19,20 +19,37 @@ ComponentType = Literal[
     "mobile",
     "backend",
     "worker",
+    "ai-service",
     "database",
+    "document-database",
     "cache",
-    "storage",
+    "object-storage",
     "auth",
     "authorization",
-    "external_api",
-    "message_queue",
-    "load_balancer",
+    "external-api",
+    "message-queue",
+    "load-balancer",
     "gateway",
     "service",
-    "ai_service",
     "cloud",
     "container",
     "custom",
+]
+
+
+GenerationSupportPhase = Literal[
+    "implemented",
+    "configured",
+    "represented",
+    "experimental",
+    "modeling-only",
+    "unknown",
+]
+
+
+GenerationCapabilityKind = Literal[
+    "component",
+    "connection",
 ]
 
 
@@ -40,7 +57,9 @@ def _strip_required_text(value: str) -> str:
     cleaned = value.strip()
 
     if not cleaned:
-        raise ValueError("Value must not be blank.")
+        raise ValueError(
+            "Value must not be blank.",
+        )
 
     return cleaned
 
@@ -51,7 +70,9 @@ class Position(BaseModel):
     z: float
 
     @model_validator(mode="after")
-    def validate_finite_coordinates(self) -> "Position":
+    def validate_finite_coordinates(
+        self,
+    ) -> "Position":
         coordinates = {
             "x": self.x,
             "y": self.y,
@@ -67,7 +88,7 @@ class Position(BaseModel):
         if invalid:
             raise ValueError(
                 "Position coordinates must be finite numbers. "
-                f"Invalid coordinates: {', '.join(invalid)}."
+                f"Invalid coordinates: {', '.join(invalid)}.",
             )
 
         return self
@@ -84,9 +105,19 @@ class Component(BaseModel):
     icon: Optional[str] = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator("id", "name")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+    )
+
+    @field_validator(
+        "id",
+        "name",
+    )
     @classmethod
-    def validate_required_text(cls, value: str) -> str:
+    def validate_required_text(
+        cls,
+        value: str,
+    ) -> str:
         return _strip_required_text(value)
 
     @field_validator(
@@ -109,17 +140,24 @@ class Connection(BaseModel):
     id: str = Field(min_length=1)
     source: str = Field(min_length=1)
     target: str = Field(min_length=1)
+
     connection_type: str = Field(
         default="dependency",
         min_length=1,
     )
+
     protocol: Optional[str] = None
+
     direction: str = Field(
         default="unidirectional",
         min_length=1,
     )
+
     label: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+    )
 
     @field_validator(
         "id",
@@ -129,7 +167,10 @@ class Connection(BaseModel):
         "direction",
     )
     @classmethod
-    def validate_required_text(cls, value: str) -> str:
+    def validate_required_text(
+        cls,
+        value: str,
+    ) -> str:
         return _strip_required_text(value)
 
     @field_validator(
@@ -153,17 +194,23 @@ class ArchitectureModel(BaseModel):
         default="Untitled Architecture",
         min_length=1,
     )
+
     description: Optional[str] = None
+
     components: List[Component] = Field(
         default_factory=list,
     )
+
     connections: List[Connection] = Field(
         default_factory=list,
     )
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, value: str) -> str:
+    def validate_name(
+        cls,
+        value: str,
+    ) -> str:
         return _strip_required_text(value)
 
     @field_validator(
@@ -186,11 +233,15 @@ class GenerateRequest(BaseModel):
         min_length=1,
         max_length=5000,
     )
+
     current_model: ArchitectureModel
 
     @field_validator("prompt")
     @classmethod
-    def validate_prompt(cls, value: str) -> str:
+    def validate_prompt(
+        cls,
+        value: str,
+    ) -> str:
         return _strip_required_text(value)
 
 
@@ -198,15 +249,19 @@ class ArchitectureChanges(BaseModel):
     added_component_ids: List[str] = Field(
         default_factory=list,
     )
+
     updated_component_ids: List[str] = Field(
         default_factory=list,
     )
+
     removed_component_ids: List[str] = Field(
         default_factory=list,
     )
+
     added_connection_ids: List[str] = Field(
         default_factory=list,
     )
+
     removed_connection_ids: List[str] = Field(
         default_factory=list,
     )
@@ -219,7 +274,10 @@ class GenerateResponse(BaseModel):
 
     @field_validator("summary")
     @classmethod
-    def validate_summary(cls, value: str) -> str:
+    def validate_summary(
+        cls,
+        value: str,
+    ) -> str:
         return _strip_required_text(value)
 
 
@@ -228,7 +286,9 @@ class FeedbackRequest(BaseModel):
 
 
 class FeedbackResponse(BaseModel):
-    """Suggestions returned by the architecture feedback endpoint."""
+    """
+    Suggestions returned by the architecture feedback endpoint.
+    """
 
     suggestions: List[str] = Field(
         default_factory=list,
@@ -242,9 +302,14 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectRename(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+    )
 
-    name: str = Field(min_length=1, max_length=150)
+    name: str = Field(
+        min_length=1,
+        max_length=150,
+    )
 
 
 class ProjectSummary(BaseModel):
@@ -268,3 +333,112 @@ class ProjectSummary(BaseModel):
 
 class ProjectDetail(ProjectSummary):
     model: ArchitectureModel
+
+
+class GenerationCapabilityDeclaration(
+    BaseModel,
+):
+    """
+    Capability declared by a project-generation service.
+
+    Generator modules own these declarations. The generation-support
+    service combines them into the public frontend manifest.
+    """
+
+    catalog_id: str = Field(min_length=1)
+
+    kind: GenerationCapabilityKind
+
+    generator: str = Field(min_length=1)
+
+    supported: bool
+
+    phase: GenerationSupportPhase
+
+    reason: str = Field(min_length=1)
+
+    technologies: List[str] = Field(
+        default_factory=list,
+    )
+
+    generated_files: List[str] = Field(
+        default_factory=list,
+    )
+
+    @field_validator(
+        "catalog_id",
+        "generator",
+        "reason",
+    )
+    @classmethod
+    def validate_required_capability_text(
+        cls,
+        value: str,
+    ) -> str:
+        return _strip_required_text(value)
+
+    @field_validator(
+        "technologies",
+        "generated_files",
+    )
+    @classmethod
+    def remove_blank_list_values(
+        cls,
+        values: List[str],
+    ) -> List[str]:
+        return [
+            str(value).strip()
+            for value in values
+            if str(value).strip()
+        ]
+
+
+class GenerationCapability(BaseModel):
+    """
+    Public generation-support information returned to the frontend.
+    """
+
+    supported: bool
+
+    phase: GenerationSupportPhase
+
+    label: str = Field(min_length=1)
+
+    reason: str = Field(min_length=1)
+
+    generators: List[str] = Field(
+        default_factory=list,
+    )
+
+    technologies: List[str] = Field(
+        default_factory=list,
+    )
+
+    generated_files: List[str] = Field(
+        default_factory=list,
+    )
+
+
+class GenerationSupportManifest(BaseModel):
+    """
+    Backend-owned support manifest consumed by the frontend sidebar.
+    """
+
+    schema_version: str = Field(
+        default="1.0",
+        min_length=1,
+    )
+
+    components: Dict[
+        str,
+        GenerationCapability,
+    ] = Field(
+        default_factory=dict,
+    )
+
+    connections: Dict[
+        str,
+        GenerationCapability,
+    ] = Field(
+        default_factory=dict,
+    )

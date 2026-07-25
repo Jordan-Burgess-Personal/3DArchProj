@@ -62,7 +62,7 @@ class Connection(TimestampMixin, Base):
     connection_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        default="data-flow",
+        default="dependency",
     )
 
     protocol: Mapped[str | None] = mapped_column(
