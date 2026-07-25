@@ -21,12 +21,13 @@ CURRENT_ARCHITECTURE = {
             "type": "backend",
             "name": "FastAPI Backend",
             "technology": "FastAPI",
-            "description": "Existing application API.",
+            "description": "Application API.",
             "position": {
-                "x": 8,
+                "x": 0,
                 "y": 0.5,
-                "z": 4,
+                "z": 0,
             },
+            "metadata": {},
         },
     ],
     "connections": [],
@@ -34,8 +35,8 @@ CURRENT_ARCHITECTURE = {
 
 
 PROPOSED_ARCHITECTURE = {
-    "name": "Existing Architecture",
-    "description": "Architecture already on the canvas.",
+    "name": "Current Architecture",
+    "description": "Architecture with security and storage.",
     "components": [
         CURRENT_ARCHITECTURE["components"][0],
         {
@@ -45,7 +46,7 @@ PROPOSED_ARCHITECTURE = {
             "technology": "OAuth2",
             "description": "Authenticates requests.",
             "position": {
-                "x": 0,
+                "x": 4,
                 "y": 0.5,
                 "z": 0,
             },
@@ -54,14 +55,15 @@ PROPOSED_ARCHITECTURE = {
         {
             "id": "database",
             "type": "database",
-            "name": "Application Database",
+            "name": "PostgreSQL Database",
             "technology": "PostgreSQL",
             "description": "Stores application data.",
             "position": {
-                "x": 4,
+                "x": 8,
                 "y": 0.5,
                 "z": 0,
             },
+            "metadata": {},
         },
     ],
     "connections": [],
