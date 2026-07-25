@@ -4,6 +4,7 @@ import {
   generateArchitecture,
   getAIErrorMessage,
   getAIValidationErrors,
+  getArchitectureFeedback,
 } from '../api/ai'
 import { useArchitectureStore } from '../store/architectureStore'
 
