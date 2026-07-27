@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 
 import { getProjectSummaries } from '../api/projects'
+import {
+  validateArchitecture,
+} from '../utils/validateArchitecture'
 
 import {
   findComponentTemplate,
@@ -355,6 +358,103 @@ export const useArchitectureStore = create(
         selectedProjectId: null,
         openedProjectId: null,
       }),
+
+    /*
+     * Apply an AI-generated architecture proposal after
+     * the user explicitly approves the proposed changes.
+     */
+    applyArchitectureProposal: (proposal) => {
+      if (!proposal || typeof proposal !== 'object') {
+        return {
+          success: false,
+          error: 'A valid architecture proposal is required.',
+        }
+      }
+
+      const proposedComponents = Array.isArray(proposal.components)
+        ? proposal.components
+        : []
+
+      const proposedConnections = Array.isArray(proposal.connections)
+        ? proposal.connections
+        : []
+
+      let appliedModel = null
+
+      set((state) => {
+        const currentComponentsById = new Map(
+          state.model.components.map((component) => [component.id, component]),
+        )
+
+        const normalizedComponents = proposedComponents.map((component) => {
+          const existing = currentComponentsById.get(component.id)
+
+          return normalizeComponent({
+            ...existing,
+            ...component,
+            position: existing?.position || component.position,
+          })
+        })
+
+        const componentIds = new Set(
+          normalizedComponents.map((component) => component.id),
+        )
+
+        const normalizedConnections = proposedConnections
+          .map(normalizeConnection)
+          .filter(
+            (connection) =>
+              componentIds.has(connection.source) &&
+              componentIds.has(connection.target) &&
+              connection.source !== connection.target,
+          )
+
+        const selectedId =
+          state.selectedId && componentIds.has(state.selectedId)
+            ? state.selectedId
+            : null
+
+        const selectedConnectionId =
+          state.selectedConnectionId &&
+          normalizedConnections.some(
+            (connection) =>
+              connection.id === state.selectedConnectionId,
+          )
+            ? state.selectedConnectionId
+            : null
+
+        appliedModel = {
+          name:
+            proposal.name ||
+            state.model.name ||
+            'Untitled Architecture',
+          description:
+            proposal.description ??
+            state.model.description ??
+            '',
+          components: normalizedComponents,
+          connections: normalizedConnections,
+        }
+
+        return {
+          model: appliedModel,
+          projectName: appliedModel.name,
+          selectedId,
+          selectedConnectionId,
+          activeComponentTemplateId: null,
+          activeConnectionTemplateId: null,
+          connectionSourceId: null,
+          connectionTargetIds: [],
+          isConnectionBuilderOpen: false,
+          isDraggingComponent: false,
+        }
+      })
+
+      return {
+        success: true,
+        model: appliedModel,
+      }
+    },
 
     /*
      * Project management
