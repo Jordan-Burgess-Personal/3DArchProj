@@ -169,6 +169,16 @@ export default function AIAssistant() {
     validateArchitecture(
       pendingProposal.architecture,
     )
+
+    if (!validation.valid) {
+      setProposalValidationErrors(
+        validation.errors,
+      )
+      serErrorMessage(
+        'The proposed architecture is invalid and cannot be applied.',
+      )
+      return
+    }
     const result =
       applyArchitectureProposal(
         pendingProposal.architecture,
