@@ -6,6 +6,9 @@ import {
   getAIValidationErrors,
   getArchitectureFeedback,
 } from '../api/ai'
+import {
+  validateArchitecture,
+} from '../utils/validateArchitecture'
 import { useArchitectureStore } from '../store/architectureStore'
 
 const DEFAULT_PROMPT =
@@ -163,6 +166,10 @@ export default function AIAssistant() {
     // is never mutated afterward, so no need to re-validate it here.
     // The store's own applyArchitectureProposal result is still checked
     // below, since that's a genuine runtime outcome we don't control.
+    const validation =
+    validateArchitecture(
+      pendingProposal.architecture,
+    )
     const result =
       applyArchitectureProposal(
         pendingProposal.architecture,
