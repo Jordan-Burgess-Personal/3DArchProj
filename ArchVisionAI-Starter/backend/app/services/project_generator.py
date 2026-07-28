@@ -9,6 +9,7 @@ from app.services.backend_generator import generate_backend_files
 from app.services.database_generator import generate_database_files
 from app.services.docker_generator import generate_docker_files
 from app.services.frontend_generator import generate_frontend_files
+from app.services.readme_generator import generate_readme_file
 
 
 BASE_OUTPUT = Path(
@@ -71,6 +72,7 @@ def _collect_generated_project_files(
     backend_result: dict[str, Any],
     database_result: dict[str, Any],
     docker_result: dict[str, Any],
+    readme_result: dict[str, Any],
 ) -> list[str]:
     """Return every generated project file in one ordered collection."""
 
@@ -100,6 +102,12 @@ def _collect_generated_project_files(
     generated_files.extend(
         docker_result.get(
             "generated_docker_files",
+            [],
+        )
+    )
+    generated_files.extend(
+        readme_result.get(
+            "generated_readme_files",
             [],
         )
     )
@@ -186,6 +194,17 @@ def create_project_structure(
         )
     )
 
+    readme_result = (
+        generate_readme_file(
+            project_dir,
+            model,
+            frontend_result,
+            backend_result,
+            database_result,
+            docker_result,
+        )
+    )
+
     generated_project_files = (
         _collect_generated_project_files(
             architecture_files,
@@ -205,6 +224,15 @@ def create_project_structure(
         ),
         "generated_project_files": (
             generated_project_files
+        ),
+        "generated_readme_files": (
+            readme_result.get("generated_readme_files", [])
+        ),
+        "documented_technologies": (
+            readme_result.get("documented_technologies", [])
+        ),
+        "generated_readme_sections": (
+            readme_result.get("generated_readme_sections", [])
         ),
         "generated_project_file_count": len(
             generated_project_files,

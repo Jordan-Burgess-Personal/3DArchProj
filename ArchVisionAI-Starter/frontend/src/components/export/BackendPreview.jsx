@@ -49,6 +49,12 @@ function createBackendNodes() {
       label: 'Docker',
     },
     {
+    id: 'backend-requirements-file',
+    name: 'requirements.txt',
+    type: 'file',
+    label: 'Python',
+    },
+    {
       id: 'backend-app-folder',
       name: 'app',
       type: 'folder',

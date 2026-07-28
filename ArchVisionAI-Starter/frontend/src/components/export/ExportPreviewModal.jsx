@@ -24,6 +24,7 @@ import BackendPreview from './BackendPreview'
 import DatabasePreview from './DatabasePreview'
 import DockerPreview from './DockerPreview'
 import FrontendPreview from './FrontendPreview'
+import ProjectRootPreview from './ProjectRootPreview'
 
 
 const UNKNOWN_PROJECT_NAME =
@@ -1325,6 +1326,8 @@ export default function ExportPreviewModal({
 
             <div className="mt-4 space-y-6">
               <ArchitecturePreview />
+
+              <ProjectRootPreview />
 
               <DockerPreview
                 serviceCount={

@@ -7,6 +7,7 @@ from app.services.backend_generator import BACKEND_GENERATION_CAPABILITIES
 from app.services.database_generator import DATABASE_GENERATION_CAPABILITIES
 from app.services.docker_generator import DOCKER_GENERATION_CAPABILITIES
 from app.services.frontend_generator import FRONTEND_GENERATION_CAPABILITIES
+from app.services.readme_generator import README_GENERATION_CAPABILITIES
 
 
 GENERATION_CAPABILITY_GROUPS = (
@@ -14,6 +15,7 @@ GENERATION_CAPABILITY_GROUPS = (
     BACKEND_GENERATION_CAPABILITIES,
     DATABASE_GENERATION_CAPABILITIES,
     DOCKER_GENERATION_CAPABILITIES,
+    README_GENERATION_CAPABILITIES,
 )
 
 
@@ -184,9 +186,9 @@ def get_generation_support_manifest(
     The frontend calls the related API endpoint instead of maintaining a
     separate static support configuration.
 
-    Backend capability declarations now include backend/requirements.txt, so
-    that generated file is surfaced automatically through the manifest without
-    additional coordinator logic.
+    Backend capability declarations include backend/requirements.txt, and the
+    README generator contributes README.md. Both generated files are surfaced
+    automatically through the manifest without additional coordinator logic.
     """
 
     grouped_components: dict[
