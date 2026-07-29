@@ -16,6 +16,19 @@ import {
   Workflow,
 } from 'lucide-react'
 
+
+const UNKNOWN_GENERATION_SUPPORT = {
+  supported: false,
+  phase: 'unknown',
+  label: 'Support Unknown',
+  reason:
+    'The backend did not report project-generation support for this item.',
+  generators: [],
+  technologies: [],
+  generated_files: [],
+}
+
+
 export const componentCategories = [
   {
     id: 'client',
@@ -27,7 +40,8 @@ export const componentCategories = [
         type: 'frontend',
         name: 'Web Frontend',
         technology: 'React',
-        description: 'Browser-based user interface.',
+        description:
+          'Browser-based user interface.',
         color: '#0d9488',
         icon: Globe,
       },
@@ -37,7 +51,8 @@ export const componentCategories = [
         type: 'mobile',
         name: 'Mobile Application',
         technology: 'React Native',
-        description: 'Mobile client application.',
+        description:
+          'Mobile client application.',
         color: '#0891b2',
         icon: Smartphone,
       },
@@ -53,7 +68,8 @@ export const componentCategories = [
         type: 'backend',
         name: 'API Service',
         technology: 'FastAPI',
-        description: 'Backend API and business-logic service.',
+        description:
+          'Backend API and business-logic service.',
         color: '#1d4ed8',
         icon: Server,
       },
@@ -63,7 +79,8 @@ export const componentCategories = [
         type: 'worker',
         name: 'Background Worker',
         technology: 'Python',
-        description: 'Processes asynchronous background jobs.',
+        description:
+          'Processes asynchronous background jobs.',
         color: '#7c3aed',
         icon: Workflow,
       },
@@ -73,7 +90,8 @@ export const componentCategories = [
         type: 'ai-service',
         name: 'AI Service',
         technology: 'OpenAI',
-        description: 'AI-powered generation or analysis service.',
+        description:
+          'AI-powered generation or analysis service.',
         color: '#c026d3',
         icon: Bot,
       },
@@ -89,7 +107,8 @@ export const componentCategories = [
         type: 'database',
         name: 'Relational Database',
         technology: 'PostgreSQL',
-        description: 'Structured relational data storage.',
+        description:
+          'Structured relational data storage.',
         color: '#6d28d9',
         icon: Database,
       },
@@ -99,7 +118,8 @@ export const componentCategories = [
         type: 'document-database',
         name: 'Document Database',
         technology: 'MongoDB',
-        description: 'Document-oriented data storage.',
+        description:
+          'Document-oriented data storage.',
         color: '#15803d',
         icon: Layers3,
       },
@@ -108,8 +128,10 @@ export const componentCategories = [
         category: 'data',
         type: 'object-storage',
         name: 'Object Storage',
-        technology: 'S3-compatible storage',
-        description: 'File and object storage service.',
+        technology:
+          'S3-compatible storage',
+        description:
+          'File and object storage service.',
         color: '#b45309',
         icon: HardDrive,
       },
@@ -125,7 +147,8 @@ export const componentCategories = [
         type: 'container',
         name: 'Container',
         technology: 'Docker',
-        description: 'Containerized application runtime.',
+        description:
+          'Containerized application runtime.',
         color: '#0369a1',
         icon: Box,
       },
@@ -135,7 +158,8 @@ export const componentCategories = [
         type: 'cloud',
         name: 'Cloud Service',
         technology: 'Cloud Platform',
-        description: 'Cloud-hosted application resource.',
+        description:
+          'Cloud-hosted application resource.',
         color: '#2563eb',
         icon: Cloud,
       },
@@ -145,7 +169,8 @@ export const componentCategories = [
         type: 'gateway',
         name: 'API Gateway',
         technology: 'API Gateway',
-        description: 'Routes and manages external API traffic.',
+        description:
+          'Routes and manages external API traffic.',
         color: '#be123c',
         icon: Network,
       },
@@ -161,7 +186,8 @@ export const componentCategories = [
         type: 'auth',
         name: 'Authentication Service',
         technology: 'JWT / OAuth',
-        description: 'Authenticates users and services.',
+        description:
+          'Authenticates users and services.',
         color: '#dc2626',
         icon: KeyRound,
       },
@@ -170,8 +196,10 @@ export const componentCategories = [
         category: 'security',
         type: 'authorization',
         name: 'Authorization Service',
-        technology: 'Role-Based Access',
-        description: 'Controls access to application resources.',
+        technology:
+          'Role-Based Access',
+        description:
+          'Controls access to application resources.',
         color: '#e11d48',
         icon: ShieldCheck,
       },
@@ -179,7 +207,8 @@ export const componentCategories = [
   },
   {
     id: 'integration',
-    label: 'External and Integration',
+    label:
+      'External and Integration',
     items: [
       {
         id: 'external-api',
@@ -187,7 +216,8 @@ export const componentCategories = [
         type: 'external-api',
         name: 'External API',
         technology: 'REST API',
-        description: 'Third-party or external service.',
+        description:
+          'Third-party or external service.',
         color: '#9333ea',
         icon: ExternalLink,
       },
@@ -197,13 +227,15 @@ export const componentCategories = [
         type: 'custom',
         name: 'Custom Component',
         technology: '',
-        description: 'User-defined architecture component.',
+        description:
+          'User-defined architecture component.',
         color: '#475569',
         icon: Braces,
       },
     ],
   },
 ]
+
 
 export const connectionCategories = [
   {
@@ -215,21 +247,25 @@ export const connectionCategories = [
         name: 'REST API',
         connectionType: 'api-call',
         protocol: 'HTTPS',
-        description: 'Synchronous REST request.',
+        description:
+          'Synchronous REST request.',
       },
       {
         id: 'graphql',
         name: 'GraphQL',
         connectionType: 'api-call',
         protocol: 'GraphQL',
-        description: 'GraphQL query or mutation.',
+        description:
+          'GraphQL query or mutation.',
       },
       {
         id: 'websocket',
         name: 'WebSocket',
-        connectionType: 'bidirectional',
+        connectionType:
+          'bidirectional',
         protocol: 'WebSocket',
-        description: 'Persistent bidirectional connection.',
+        description:
+          'Persistent bidirectional connection.',
       },
     ],
   },
@@ -240,16 +276,20 @@ export const connectionCategories = [
       {
         id: 'database-access',
         name: 'Database Access',
-        connectionType: 'data-access',
+        connectionType:
+          'data-access',
         protocol: 'Database',
-        description: 'Reads from or writes to a data store.',
+        description:
+          'Reads from or writes to a data store.',
       },
       {
         id: 'file-transfer',
         name: 'File Transfer',
-        connectionType: 'file-transfer',
+        connectionType:
+          'file-transfer',
         protocol: 'HTTPS',
-        description: 'Transfers files or stored objects.',
+        description:
+          'Transfers files or stored objects.',
       },
     ],
   },
@@ -262,14 +302,16 @@ export const connectionCategories = [
         name: 'Message Queue',
         connectionType: 'message',
         protocol: 'Queue',
-        description: 'Asynchronous queued message.',
+        description:
+          'Asynchronous queued message.',
       },
       {
         id: 'event-stream',
         name: 'Event Stream',
         connectionType: 'event',
         protocol: 'Event Stream',
-        description: 'Publishes or consumes events.',
+        description:
+          'Publishes or consumes events.',
       },
     ],
   },
@@ -282,17 +324,26 @@ export const connectionCategories = [
         name: 'Dependency',
         connectionType: 'dependency',
         protocol: '',
-        description: 'General architectural dependency.',
+        description:
+          'General architectural dependency.',
       },
     ],
   },
 ]
 
-export function findComponentTemplate(templateId) {
-  for (const category of componentCategories) {
-    const template = category.items.find(
-      (item) => item.id === templateId,
-    )
+
+export function findComponentTemplate(
+  templateId,
+) {
+  for (
+    const category
+    of componentCategories
+  ) {
+    const template =
+      category.items.find(
+        (item) =>
+          item.id === templateId,
+      )
 
     if (template) {
       return template
@@ -302,11 +353,19 @@ export function findComponentTemplate(templateId) {
   return null
 }
 
-export function findConnectionTemplate(templateId) {
-  for (const category of connectionCategories) {
-    const template = category.items.find(
-      (item) => item.id === templateId,
-    )
+
+export function findConnectionTemplate(
+  templateId,
+) {
+  for (
+    const category
+    of connectionCategories
+  ) {
+    const template =
+      category.items.find(
+        (item) =>
+          item.id === templateId,
+      )
 
     if (template) {
       return template
@@ -314,4 +373,90 @@ export function findConnectionTemplate(templateId) {
   }
 
   return null
+}
+
+
+function normalizeGenerationSupport(
+  support,
+) {
+  if (!support) {
+    return {
+      ...UNKNOWN_GENERATION_SUPPORT,
+    }
+  }
+
+  return {
+    ...UNKNOWN_GENERATION_SUPPORT,
+    ...support,
+    generators:
+      support.generators || [],
+    technologies:
+      support.technologies || [],
+    generated_files:
+      support.generated_files || [],
+  }
+}
+
+
+export function getComponentGenerationSupport(
+  templateOrId,
+  generationSupportManifest,
+) {
+  const templateId =
+    typeof templateOrId === 'string'
+      ? templateOrId
+      : templateOrId?.id
+
+  return normalizeGenerationSupport(
+    generationSupportManifest
+      ?.components?.[templateId],
+  )
+}
+
+
+export function getConnectionGenerationSupport(
+  templateOrId,
+  generationSupportManifest,
+) {
+  const templateId =
+    typeof templateOrId === 'string'
+      ? templateOrId
+      : templateOrId?.id
+
+  return normalizeGenerationSupport(
+    generationSupportManifest
+      ?.connections?.[templateId],
+  )
+}
+
+
+export function getSupportedComponentTemplates(
+  generationSupportManifest,
+) {
+  return componentCategories.flatMap(
+    (category) =>
+      category.items.filter(
+        (item) =>
+          getComponentGenerationSupport(
+            item,
+            generationSupportManifest,
+          ).supported === true,
+      ),
+  )
+}
+
+
+export function getSupportedConnectionTemplates(
+  generationSupportManifest,
+) {
+  return connectionCategories.flatMap(
+    (category) =>
+      category.items.filter(
+        (item) =>
+          getConnectionGenerationSupport(
+            item,
+            generationSupportManifest,
+          ).supported === true,
+      ),
+  )
 }

@@ -35,7 +35,7 @@ Return one strict JSON object with this structure:
     "components": [
       {
         "id": "unique-id",
-        "type": "frontend | mobile | backend | worker | database | cache | storage | auth | authorization | external_api | message_queue | load_balancer | gateway | service | ai_service | cloud | container | custom",
+        "type": "frontend | mobile | backend | worker | database | document-database | cache | object-storage | auth | authorization | external-api | message-queue | load-balancer | gateway | service | ai-service | cloud | container | custom",
         "name": "Display name",
         "technology": "Technology or empty string",
         "description": "Purpose of the component",

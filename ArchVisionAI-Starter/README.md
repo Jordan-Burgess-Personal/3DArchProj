@@ -306,6 +306,46 @@ npm run dev
 
 ---
 
+## Running Tests
+
+ArchVision AI includes both backend (Python) and frontend (JavaScript/React) test suites. Before running tests, ensure all project dependencies have been installed.
+
+### Backend Tests (Pytest)
+
+Open a terminal and navigate to the backend directory.
+
+Activate the project's virtual environment:
+
+```bash
+# Windows
+venv\Scripts\activate
+
+# macOS/Linux
+source venv/bin/activate
+```
+
+Run all backend tests:
+
+```bash
+python -m pytest
+```
+
+### Frontend Tests (Vitest)
+
+Open a separate terminal and navigate to the frontend directory.
+
+Run all frontend tests:
+
+```bash
+npx vitest run
+```
+
+### Expected Result
+
+If all tests complete successfully, the terminal will report that the test suite has passed along with the number of tests executed. Any failing tests will include detailed output identifying the failing test and the associated error message to assist with debugging.
+
+---
+
 ## Usage
 
 1. Start the FastAPI backend.

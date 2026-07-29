@@ -359,6 +359,7 @@ export const useArchitectureStore = create(
         openedProjectId: null,
       }),
 
+
     /*
      * Apply an AI-generated architecture proposal after
      * the user explicitly approves the proposed changes.
