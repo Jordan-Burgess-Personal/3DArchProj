@@ -1,5 +1,9 @@
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://127.0.0.1:8001'
+
 const EXPORT_STARTER_URL =
-  'http://127.0.0.1:8000/export/starter'
+  `${API_BASE_URL}/api/export/starter`
 
 async function getErrorMessage(response) {
   const contentType =
@@ -150,6 +154,7 @@ export async function exportStarterProject(
       {
         method: 'POST',
         headers: {
+          Accept: 'application/zip',
           'Content-Type':
             'application/json',
         },
@@ -163,7 +168,7 @@ export async function exportStarterProject(
     )
 
     throw new Error(
-      'Unable to connect to the export service at 127.0.0.1:8000. Confirm that the FastAPI backend is running.',
+      `Unable to connect to the export service at ${EXPORT_STARTER_URL}. Confirm that the FastAPI backend is running.`,
     )
   }
 

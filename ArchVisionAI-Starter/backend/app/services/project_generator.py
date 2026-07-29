@@ -35,7 +35,7 @@ def slugify(
 
 
 def _normalize_generated_files(
-    files: list[str] | None,
+    files: list[str | None] | None,
 ) -> list[str]:
     """Normalize generated file paths and remove duplicate entries."""
 
@@ -43,6 +43,9 @@ def _normalize_generated_files(
     seen: set[str] = set()
 
     for file_path in files or []:
+        if file_path is None:
+            continue
+
         normalized_path = str(
             file_path,
         ).replace(
@@ -212,6 +215,7 @@ def create_project_structure(
             backend_result,
             database_result,
             docker_result,
+            readme_result,
         )
     )
 
