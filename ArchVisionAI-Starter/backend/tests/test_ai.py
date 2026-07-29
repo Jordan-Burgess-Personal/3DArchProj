@@ -66,6 +66,42 @@ PROPOSED_ARCHITECTURE = {
             "metadata": {},
         },
     ],
+    "connections": [],
+}
+
+
+PROPOSED_ARCHITECTURE = {
+    "name": "Current Architecture",
+    "description": "Architecture with security and storage.",
+    "components": [
+        CURRENT_ARCHITECTURE["components"][0],
+        {
+            "id": "security-layer",
+            "type": "auth",
+            "name": "Security Layer",
+            "technology": "OAuth2",
+            "description": "Authenticates requests.",
+            "position": {
+                "x": 4,
+                "y": 0.5,
+                "z": 0,
+            },
+            "metadata": {},
+        },
+        {
+            "id": "database",
+            "type": "database",
+            "name": "PostgreSQL Database",
+            "technology": "PostgreSQL",
+            "description": "Stores application data.",
+            "position": {
+                "x": 8,
+                "y": 0.5,
+                "z": 0,
+            },
+            "metadata": {},
+        },
+    ],
     "connections": [
         {
             "id": "backend-security",

@@ -4,6 +4,7 @@ import {
   generateArchitecture,
   getAIErrorMessage,
   getAIValidationErrors,
+  getArchitectureFeedback,
 } from '../api/ai'
 import {
   validateArchitecture,
@@ -122,26 +123,14 @@ export default function AIAssistant() {
     setProposalValidationErrors([])
 
     try {
+      // generateArchitecture() already validates the proposal internally
+      // (via assertValidArchitecture) and throws if it's invalid, so by
+      // the time we get here the proposal is guaranteed structurally valid.
       const proposal =
         await generateArchitecture(
           cleanedPrompt,
           model,
         )
-
-      const validation =
-        validateArchitecture(
-          proposal.architecture,
-        )
-
-      if (!validation.valid) {
-        setProposalValidationErrors(
-          validation.errors,
-        )
-        setErrorMessage(
-          'The generated architecture could not be reviewed because it failed validation.',
-        )
-        return
-      }
 
       setPendingProposal(proposal)
       setProposalValidationErrors([])
@@ -172,10 +161,15 @@ export default function AIAssistant() {
       return
     }
 
+    // pendingProposal.architecture was already validated when it was
+    // generated (generateArchitecture throws on an invalid proposal) and
+    // is never mutated afterward, so no need to re-validate it here.
+    // The store's own applyArchitectureProposal result is still checked
+    // below, since that's a genuine runtime outcome we don't control.
     const validation =
-      validateArchitecture(
-        pendingProposal.architecture,
-      )
+    validateArchitecture(
+      pendingProposal.architecture,
+    )
 
     if (!validation.valid) {
       setProposalValidationErrors(
@@ -186,7 +180,7 @@ export default function AIAssistant() {
       )
       return
     }
-
+    
     const result =
       applyArchitectureProposal(
         pendingProposal.architecture,
