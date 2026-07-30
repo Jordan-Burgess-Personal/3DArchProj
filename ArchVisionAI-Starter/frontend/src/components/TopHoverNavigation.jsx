@@ -4,41 +4,33 @@ import {
   Home,
   Menu,
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import {
+  NavLink,
+  useNavigate,
+} from 'react-router-dom'
 
 import { useArchitectureStore } from '../store/architectureStore'
 
-const navigationItems = [
-  {
-    label: 'Home',
-    description:
-      'Return to the project home page',
-    to: '/dashboard',
-    icon: Home,
-  },
-  {
-    label: 'New Project',
-    description:
-      'Open a blank architecture workspace',
-    to: '/workspace',
-    icon: FolderPlus,
-  },
-]
-
 export default function TopHoverNavigation() {
+  const navigate = useNavigate()
+
   const openProjectManager =
     useArchitectureStore(
       (state) => state.openProjectManager,
     )
 
+  const startNewProject =
+    useArchitectureStore(
+      (state) => state.startNewProject,
+    )
+
+  function handleNewProject() {
+    startNewProject()
+    navigate('/workspace')
+  }
+
   return (
-    /*
-     * The wrapper controls the hover state. Because the dropdown
-     * remains inside this wrapper, it stays open while the mouse
-     * is over either the trigger or the expanded menu.
-     */
     <div className="group absolute left-1/2 top-0 z-50 -translate-x-1/2">
-      {/* Small familiar pull-down tab */}
       <div className="flex justify-center">
         <div
           className="
@@ -57,7 +49,6 @@ export default function TopHoverNavigation() {
         </div>
       </div>
 
-      {/* Slide-down panel */}
       <nav
         aria-label="Project navigation"
         className="
@@ -129,43 +120,32 @@ export default function TopHoverNavigation() {
             </span>
           </button>
 
-          {navigationItems
-            .filter(
-              (item) =>
-                item.label === 'New Project',
-            )
-            .map((item) => {
-              const Icon = item.icon
+          <button
+            type="button"
+            onClick={handleNewProject}
+            className={[
+              'flex min-w-0 items-center gap-3',
+              'rounded-lg border border-transparent',
+              'bg-slate-900 p-3 text-left',
+              'text-slate-300 transition',
+              'hover:border-slate-600',
+              'hover:bg-slate-800 hover:text-white',
+            ].join(' ')}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
+              <FolderPlus size={18} />
+            </span>
 
-              return (
-                <NavLink
-                  key={item.label}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    [
-                      'flex min-w-0 items-center gap-3 rounded-lg border p-3 transition',
-                      isActive
-                        ? 'border-indigo-400 bg-indigo-500/20 text-white'
-                        : 'border-transparent bg-slate-900 text-slate-300 hover:border-slate-600 hover:bg-slate-800 hover:text-white',
-                    ].join(' ')
-                  }
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-800 text-indigo-300">
-                    <Icon size={18} />
-                  </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                New Project
+              </span>
 
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">
-                      {item.label}
-                    </span>
-
-                    <span className="mt-0.5 block text-[11px] leading-4 text-slate-400">
-                      {item.description}
-                    </span>
-                  </span>
-                </NavLink>
-              )
-            })}
+              <span className="mt-0.5 block text-[11px] leading-4 text-slate-400">
+                Open a blank architecture workspace
+              </span>
+            </span>
+          </button>
         </div>
       </nav>
     </div>
