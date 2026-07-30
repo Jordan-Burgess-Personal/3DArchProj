@@ -63,10 +63,18 @@ function ProjectListItem({
   isSelected,
   onSelect,
 }) {
+  function handleClick() {
+    onSelect(
+      isSelected
+        ? null
+        : project.id,
+    )
+  }
+
   return (
     <button
       type="button"
-      onClick={() => onSelect(project.id)}
+      onClick={handleClick}
       className={[
         'w-full rounded-xl border p-4 text-left',
         'transition duration-150',
@@ -413,6 +421,24 @@ export default function ProjectManagerModal() {
   }
 
   async function handleSaveProject() {
+    if (!selectedProjectId) {
+      setSaveMessage(
+        'Select a project to overwrite.',
+      )
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Overwrite "${
+        selectedProject?.name ||
+        'Untitled Project'
+      }"? This will replace the existing saved architecture.`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
     setIsSaving(true)
     setSaveMessage('')
 
@@ -427,43 +453,82 @@ export default function ProjectManagerModal() {
         model,
       }
 
-      let response
+      await api.put(
+        `/api/projects/${selectedProjectId}`,
+        projectData,
+      )
 
-      if (openedProjectId) {
-        response = await api.put(
-          `/api/projects/${openedProjectId}`,
-          projectData,
-        )
-
-        setSaveMessage(
-          'Project changes saved successfully.',
-        )
-      } else {
-        response = await api.post(
-          '/api/projects',
-          projectData,
-        )
-
-        const createdProjectId =
-          response?.data?.id
-
-        if (createdProjectId) {
-          setOpenedProjectId(
-            String(createdProjectId),
-          )
-        }
-
-        setSaveMessage(
-          'Project saved successfully.',
-        )
-      }
+      setOpenedProjectId(
+        String(selectedProjectId),
+      )
 
       await refreshProjects()
+
+      selectProject(
+        String(selectedProjectId),
+      )
+
+      setSaveMessage(
+        'Project overwritten successfully.',
+      )
     } catch (error) {
       setSaveMessage(
         getErrorMessage(
           error,
-          'Unable to save the project.',
+          'Unable to overwrite the selected project.',
+        ),
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleSaveAsNew() {
+    setIsSaving(true)
+    setSaveMessage('')
+
+    try {
+      const model = serializeModelForApi()
+
+      const projectData = {
+        name:
+          projectName?.trim() ||
+          model.name?.trim() ||
+          'Untitled Project',
+        model,
+      }
+
+      const response = await api.post(
+        '/api/projects',
+        projectData,
+      )
+
+      const createdProjectId =
+        response?.data?.id
+
+      await refreshProjects()
+
+      if (createdProjectId) {
+        const normalizedProjectId =
+          String(createdProjectId)
+
+        setOpenedProjectId(
+          normalizedProjectId,
+        )
+
+        selectProject(
+          normalizedProjectId,
+        )
+      }
+
+      setSaveMessage(
+        'New project save created successfully.',
+      )
+    } catch (error) {
+      setSaveMessage(
+        getErrorMessage(
+          error,
+          'Unable to create a new project save.',
         ),
       )
     } finally {
@@ -807,8 +872,13 @@ async function handleDeleteProject() {
 
             <button
               type="button"
-              onClick={handleSaveProject}
+              onClick={
+                selectedProjectId
+                  ? handleSaveProject
+                  : handleSaveAsNew
+              }
               disabled={
+                !projectName.trim() ||
                 isSaving ||
                 isOpening ||
                 isDeleting
@@ -824,9 +894,9 @@ async function handleDeleteProject() {
             >
               {isSaving
                 ? 'Saving...'
-                : openedProjectId
-                ? 'Save Changes'
-                : 'Save Project'}
+                : selectedProjectId
+                  ? 'Overwrite Project'
+                  : 'Save New Project'}
             </button>
 
             <button

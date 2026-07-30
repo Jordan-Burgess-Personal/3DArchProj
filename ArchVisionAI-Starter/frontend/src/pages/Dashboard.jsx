@@ -6,14 +6,14 @@ import { useArchitectureStore } from '../store/architectureStore'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  
+
   const projects = useArchitectureStore(
     (state) => state.projects,
   )
 
-  const resetModel =
+  const startNewProject =
     useArchitectureStore(
-      (state) => state.resetModel,
+      (state) => state.startNewProject,
     )
 
   const isProjectsLoading =
@@ -46,7 +46,7 @@ export default function Dashboard() {
   }, [refreshProjects])
 
   function createNewArchitecture() {
-    resetModel()
+    startNewProject()
     navigate('/workspace')
   }
 

@@ -359,7 +359,18 @@ export const useArchitectureStore = create(
         openedProjectId: null,
       }),
 
+      startNewProject: () => {
+        get().resetModel()
 
+        set({
+          isProjectManagerOpen: false,
+          projectsError: null,
+        })
+
+        return {
+          success: true,
+        }
+      },
     /*
      * Apply an AI-generated architecture proposal after
      * the user explicitly approves the proposed changes.
