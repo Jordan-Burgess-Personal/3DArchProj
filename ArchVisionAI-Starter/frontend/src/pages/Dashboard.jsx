@@ -1,11 +1,25 @@
-import { FolderOpen, Plus } from 'lucide-react'
-import { useEffect } from 'react'
+import { 
+    FolderOpen, 
+    Plus,
+    Upload,
+   } from 'lucide-react'
+import { 
+  useEffect,
+  useState 
+  } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useArchitectureStore } from '../store/architectureStore'
 
+import ImportProjectModal from '../components/import/ImportProjectModal'
+
 export default function Dashboard() {
   const navigate = useNavigate()
+
+  const [
+    isImportModalOpen,
+    setIsImportModalOpen,
+  ] = useState(false)
 
   const projects = useArchitectureStore(
     (state) => state.projects,
@@ -75,14 +89,27 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={createNewArchitecture}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500"
-          >
-            <Plus size={20} />
-            New Architecture
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setIsImportModalOpen(true)
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-5 py-3 font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-800 hover:text-white"
+            >
+              <Upload size={20} />
+              Import Project
+            </button>
+
+            <button
+              type="button"
+              onClick={createNewArchitecture}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500"
+            >
+              <Plus size={20} />
+              New Architecture
+            </button>
+          </div>
         </section>
 
         <section className="py-8">
@@ -200,6 +227,14 @@ export default function Dashboard() {
         </section>
 
       </div>
+
+      <ImportProjectModal
+        isOpen={isImportModalOpen}
+        onClose={() =>
+          setIsImportModalOpen(false)
+        }
+      />
+        
     </div>
   )
 }
