@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from app.schemas import ArchitectureModel
-from app.services.backend_generator import generate_backend_files
-from app.services.database_generator import generate_database_files
-from app.services.docker_generator import generate_docker_files
-from app.services.frontend_generator import generate_frontend_files
-from app.services.readme_generator import generate_readme_file
+from app.services.backend.backend_generator import generate_backend_files
+from app.services.database.database_generator import generate_database_files
+from app.services.docker.docker_generator import generate_docker_files
+from app.services.frontend.frontend_generator import generate_frontend_files
+from app.services.readme.readme_generator import generate_readme_file
 
 
 BASE_OUTPUT = Path(

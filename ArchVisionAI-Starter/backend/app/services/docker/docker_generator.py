@@ -4,13 +4,13 @@ from pathlib import Path
 from typing import Any
 
 from app.schemas import ArchitectureModel
-from app.services.backend_generator import (
+from app.services.backend.backend_generator import (
     find_supported_backend,
 )
-from app.services.database_generator import (
+from app.services.database.database_generator import (
     find_supported_database,
 )
-from app.services.frontend_generator import (
+from app.services.frontend.frontend_generator import (
     find_supported_frontend,
 )
 

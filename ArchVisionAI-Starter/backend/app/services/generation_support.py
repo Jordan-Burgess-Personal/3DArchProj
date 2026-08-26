@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from app.schemas import GenerationCapability, GenerationCapabilityDeclaration, GenerationSupportManifest
-from app.services.backend_generator import BACKEND_GENERATION_CAPABILITIES
-from app.services.database_generator import DATABASE_GENERATION_CAPABILITIES
-from app.services.docker_generator import DOCKER_GENERATION_CAPABILITIES
-from app.services.frontend_generator import FRONTEND_GENERATION_CAPABILITIES
-from app.services.readme_generator import README_GENERATION_CAPABILITIES
+from app.services.backend.backend_generator import BACKEND_GENERATION_CAPABILITIES
+from app.services.database.database_generator import DATABASE_GENERATION_CAPABILITIES
+from app.services.docker.docker_generator import DOCKER_GENERATION_CAPABILITIES
+from app.services.frontend.frontend_generator import FRONTEND_GENERATION_CAPABILITIES
+from app.services.readme.readme_generator import README_GENERATION_CAPABILITIES
 
 
 GENERATION_CAPABILITY_GROUPS = (
